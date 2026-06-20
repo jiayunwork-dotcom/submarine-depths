@@ -16,7 +16,7 @@ function GameView({ onExit }) {
   const mapContainerRef = useRef(null);
 
   const handleExit = () => {
-    if (confirm('确定要退出游戏吗？')) {
+    if (window.confirm('确定要退出游戏吗？')) {
       leaveRoom();
       onExit();
     }
