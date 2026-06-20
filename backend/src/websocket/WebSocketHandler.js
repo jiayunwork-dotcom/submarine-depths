@@ -85,6 +85,27 @@ class WebSocketHandler {
         case 'spectate':
           this.handleSpectate(ws, payload);
           break;
+        case 'create_alliance':
+          this.handleCreateAlliance(ws, payload);
+          break;
+        case 'apply_alliance':
+          this.handleApplyAlliance(ws, payload);
+          break;
+        case 'accept_alliance_application':
+          this.handleAcceptAllianceApplication(ws, payload);
+          break;
+        case 'reject_alliance_application':
+          this.handleRejectAllianceApplication(ws, payload);
+          break;
+        case 'leave_alliance':
+          this.handleLeaveAlliance(ws);
+          break;
+        case 'kick_alliance_member':
+          this.handleKickAllianceMember(ws, payload);
+          break;
+        case 'transfer_resources':
+          this.handleTransferResources(ws, payload);
+          break;
         default:
           console.log('Unknown message type:', type);
       }
@@ -344,6 +365,138 @@ class WebSocketHandler {
       const state = game.getGameState(firstPlayerId);
       this.send(ws, 'game_state', state);
     }
+  }
+
+  handleCreateAlliance(ws, payload) {
+    const { name } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.createAlliance(gamePlayerId, name);
+    
+    if (result.success) {
+      this.send(ws, 'alliance_created', { alliance: result.alliance.toPublicState() });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleApplyAlliance(ws, payload) {
+    const { allianceId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.applyToAlliance(gamePlayerId, allianceId);
+    
+    if (result.success) {
+      this.send(ws, 'alliance_applied', { allianceId });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleAcceptAllianceApplication(ws, payload) {
+    const { allianceId, applicantId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.acceptApplication(gamePlayerId, allianceId, applicantId);
+    
+    if (result.success) {
+      this.send(ws, 'application_accepted', { allianceId, applicantId });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleRejectAllianceApplication(ws, payload) {
+    const { allianceId, applicantId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.rejectApplication(gamePlayerId, allianceId, applicantId);
+    
+    if (result.success) {
+      this.send(ws, 'application_rejected', { allianceId, applicantId });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleLeaveAlliance(ws) {
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.leaveAlliance(gamePlayerId);
+    
+    if (result.success) {
+      this.send(ws, 'alliance_left', {});
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleKickAllianceMember(ws, payload) {
+    const { allianceId, memberId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.kickMember(gamePlayerId, allianceId, memberId);
+    
+    if (result.success) {
+      this.send(ws, 'member_kicked', { allianceId, memberId });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleTransferResources(ws, payload) {
+    const { toPlayerId, resources } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const fromPlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.transferResources(fromPlayerId, toPlayerId, resources);
+    
+    if (result.success) {
+      this.send(ws, 'resources_transferred', { toPlayerId, resources });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
   }
 
   handleDisconnect(ws) {

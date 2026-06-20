@@ -157,6 +157,34 @@ class GameWebSocket {
     this.send('spectate', { roomCode, spectatorName });
   }
 
+  createAlliance(name) {
+    this.send('create_alliance', { name });
+  }
+
+  applyAlliance(allianceId) {
+    this.send('apply_alliance', { allianceId });
+  }
+
+  acceptAllianceApplication(allianceId, applicantId) {
+    this.send('accept_alliance_application', { allianceId, applicantId });
+  }
+
+  rejectAllianceApplication(allianceId, applicantId) {
+    this.send('reject_alliance_application', { allianceId, applicantId });
+  }
+
+  leaveAlliance() {
+    this.send('leave_alliance', {});
+  }
+
+  kickAllianceMember(allianceId, memberId) {
+    this.send('kick_alliance_member', { allianceId, memberId });
+  }
+
+  transferResources(toPlayerId, resources) {
+    this.send('transfer_resources', { toPlayerId, resources });
+  }
+
   disconnect() {
     if (this.ws) {
       this.ws.close();

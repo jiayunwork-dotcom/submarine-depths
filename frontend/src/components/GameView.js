@@ -7,10 +7,12 @@ import BuildPanel from './BuildPanel';
 import ResearchPanel from './ResearchPanel';
 import EventLog from './EventLog';
 import TechScorePanel from './TechScorePanel';
+import AlliancePanel from './AlliancePanel';
+import TransferDialog from './TransferDialog';
 import '../styles/GameView.css';
 
 function GameView({ onExit }) {
-  const { gameState, leaveRoom, selectedSubmarine, setSelectedSubmarine } = useGame();
+  const { gameState, leaveRoom, selectedSubmarine, setSelectedSubmarine, allyAttackAlert } = useGame();
   const [showBuildPanel, setShowBuildPanel] = useState(false);
   const [showResearchPanel, setShowResearchPanel] = useState(false);
   const [showEventLog, setShowEventLog] = useState(false);
@@ -82,6 +84,7 @@ function GameView({ onExit }) {
         <div className="map-container" ref={mapContainerRef}>
           <HexMap />
           {gameState && !gameState.isFinished && <TechScorePanel />}
+          <AlliancePanel />
         </div>
         
         <Sidebar />
@@ -98,6 +101,14 @@ function GameView({ onExit }) {
       {showEventLog && (
         <EventLog onClose={() => setShowEventLog(false)} />
       )}
+
+      {allyAttackAlert && (
+        <div className="ally-alert">
+          ⚠️ 你的盟友遭到攻击！
+        </div>
+      )}
+
+      <TransferDialog />
     </div>
   );
 }

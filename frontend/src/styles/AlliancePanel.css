@@ -1,0 +1,438 @@
+.alliance-panel-btn {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.alliance-panel-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.alliance-panel {
+  position: absolute;
+  bottom: 70px;
+  left: 20px;
+  width: 320px;
+  max-height: 500px;
+  background: rgba(20, 30, 48, 0.95);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  color: white;
+  padding: 20px;
+  z-index: 100;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.alliance-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.alliance-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.alliance-info {
+  margin-bottom: 16px;
+}
+
+.alliance-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.alliance-color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.alliance-members {
+  margin-top: 12px;
+}
+
+.alliance-members h4 {
+  font-size: 14px;
+  color: #aaa;
+  margin: 0 0 8px 0;
+}
+
+.member-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.member-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leader-badge {
+  font-size: 12px;
+  padding: 2px 6px;
+  background: #ffd700;
+  color: #333;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.kick-btn {
+  padding: 4px 8px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.kick-btn:hover {
+  background: #c0392b;
+}
+
+.leave-btn {
+  width: 100%;
+  padding: 10px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.leave-btn:hover {
+  background: #c0392b;
+}
+
+.create-alliance-section {
+  margin-bottom: 20px;
+}
+
+.create-alliance-section h4 {
+  font-size: 14px;
+  color: #aaa;
+  margin: 0 0 10px 0;
+}
+
+.create-alliance-input {
+  width: 100%;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.create-alliance-input::placeholder {
+  color: #888;
+}
+
+.create-btn {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.create-btn:hover {
+  opacity: 0.9;
+}
+
+.create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.available-alliances {
+  margin-top: 20px;
+}
+
+.available-alliances h4 {
+  font-size: 14px;
+  color: #aaa;
+  margin: 0 0 10px 0;
+}
+
+.alliance-card {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.alliance-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.alliance-card-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+}
+
+.alliance-card-info {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.apply-btn {
+  width: 100%;
+  padding: 6px;
+  background: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.apply-btn:hover {
+  background: #27ae60;
+}
+
+.apply-btn:disabled {
+  background: #7f8c8d;
+  cursor: not-allowed;
+}
+
+.pending-applications {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pending-applications h4 {
+  font-size: 14px;
+  color: #aaa;
+  margin: 0 0 10px 0;
+}
+
+.application-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.application-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.accept-btn {
+  padding: 4px 10px;
+  background: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.accept-btn:hover {
+  background: #27ae60;
+}
+
+.reject-btn {
+  padding: 4px 10px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.reject-btn:hover {
+  background: #c0392b;
+}
+
+.no-alliances {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+  font-size: 13px;
+}
+
+.ally-alert {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(231, 76, 60, 0.95);
+  color: white;
+  padding: 20px 40px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  z-index: 1000;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+  box-shadow: 0 0 30px rgba(231, 76, 60, 0.5);
+}
+
+@keyframes pulse {
+  from {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+.transfer-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 30, 48, 0.98);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  color: white;
+  padding: 24px;
+  z-index: 1000;
+  width: 360px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.transfer-dialog h3 {
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.transfer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.transfer-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.transfer-item-input {
+  width: 100px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+  text-align: right;
+}
+
+.transfer-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.transfer-cancel-btn {
+  flex: 1;
+  padding: 10px;
+  background: #7f8c8d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.transfer-cancel-btn:hover {
+  background: #95a5a6;
+}
+
+.transfer-confirm-btn {
+  flex: 1;
+  padding: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.transfer-confirm-btn:hover {
+  opacity: 0.9;
+}
+
+.transfer-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

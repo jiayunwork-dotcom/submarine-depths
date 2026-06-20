@@ -78,7 +78,7 @@ class Player {
     return this.score;
   }
 
-  toPublicState() {
+  toPublicState(allianceInfo = null) {
     return {
       id: this.id,
       name: this.name,
@@ -88,7 +88,10 @@ class Player {
       base: this.base.toPublicState(),
       submarines: this.submarines.map(s => s.toPublicState(false)),
       score: this.score,
-      isDefeated: this.isDefeated
+      isDefeated: this.isDefeated,
+      allianceId: allianceInfo?.allianceId || null,
+      allianceName: allianceInfo?.allianceName || null,
+      allianceColor: allianceInfo?.allianceColor || null
     };
   }
 

@@ -71,7 +71,7 @@ class CombatSystem {
     return { hit, results };
   }
 
-  static processCombat(players, map) {
+  static processCombat(players, map, allianceManager = null) {
     const combatEvents = [];
     const allSubmarines = [];
     
@@ -86,14 +86,30 @@ class CombatSystem {
     for (const { sub, player } of allSubmarines) {
       for (const action of sub.actions || []) {
         if (action.type === 'fire_torpedo') {
-          const targetPlayer = players.find(p => p.id !== player.id);
-          if (!targetPlayer) continue;
+          let target = null;
+          let targetPlayer = null;
           
-          const target = targetPlayer.getSubmarine(action.targetId);
+          for (const p of players) {
+            const found = p.getSubmarine(action.targetId);
+            if (found) {
+              target = found;
+              targetPlayer = p;
+              break;
+            }
+          }
+          
           if (!target || target.status === 'sunk') continue;
+          
+          if (allianceManager && allianceManager.areAllied(player.id, targetPlayer.id)) {
+            continue;
+          }
           
           const result = this.fireTorpedo(sub, target, map);
           if (result.results) {
+            for (const event of result.results) {
+              event.attackerPlayerId = player.id;
+              event.targetPlayerId = targetPlayer.id;
+            }
             combatEvents.push(...result.results);
           }
         }
@@ -101,6 +117,23 @@ class CombatSystem {
     }
     
     return combatEvents;
+  }
+
+  static getDistanceToAllyBase(q, r, playerId, players, allianceManager) {
+    let minDist = null;
+    for (const player of players) {
+      if (allianceManager.areAllied(playerId, player.id)) {
+        const dist = this.hexDistance(q, r, player.base.q, player.base.r);
+        if (minDist === null || dist < minDist) {
+          minDist = dist;
+        }
+      }
+    }
+    return minDist;
+  }
+
+  static hexDistance(q1, r1, q2, r2) {
+    return Math.max(Math.abs(q1 - q2), Math.abs(r1 - r2), Math.abs((q1 + r1) - (q2 + r2)));
   }
 
   static baseAttack(attackerSub, targetBase, map) {

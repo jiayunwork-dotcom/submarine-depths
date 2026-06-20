@@ -6,7 +6,16 @@ import '../styles/HexMap.css';
 function HexMap() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const { gameState, selectedSubmarine, setSelectedSubmarine, setSelectedTile, moveSubmarine, buoyDeployMode, deploySonarBuoy } = useGame();
+  const { 
+    gameState, 
+    selectedSubmarine, 
+    setSelectedSubmarine, 
+    setSelectedTile, 
+    moveSubmarine, 
+    buoyDeployMode, 
+    deploySonarBuoy,
+    setTransferDialogTarget
+  } = useGame();
   
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -90,13 +99,13 @@ function HexMap() {
 
     for (const player of gameState.players) {
       if (player.base) {
-        drawBase(ctx, player.base, player.color);
+        drawBase(ctx, player.base, player.color, player);
       }
     }
 
     for (const player of gameState.players) {
       for (const sub of player.submarines) {
-        drawSubmarine(ctx, sub, player.color, player.id === gameState.currentPlayer?.id);
+        drawSubmarine(ctx, sub, player.color, player.id === gameState.currentPlayer?.id, player);
       }
     }
 
@@ -250,8 +259,21 @@ function HexMap() {
     }
   };
 
-  const drawBase = (ctx, base, color) => {
+  const drawBase = (ctx, base, color, player) => {
     const { x, y } = hexToPixel(base.q, base.r);
+    
+    if (player?.allianceColor) {
+      ctx.beginPath();
+      ctx.arc(x, y, HEX_SIZE * 0.75, 0, Math.PI * 2);
+      ctx.strokeStyle = player.allianceColor;
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.8;
+      ctx.stroke();
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = player.allianceColor;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     
     ctx.beginPath();
     ctx.arc(x, y, HEX_SIZE * 0.6, 0, Math.PI * 2);
@@ -268,7 +290,7 @@ function HexMap() {
     ctx.fillText('🏠', x, y);
   };
 
-  const drawSubmarine = (ctx, sub, color, isOwn) => {
+  const drawSubmarine = (ctx, sub, color, isOwn, player) => {
     const { x, y } = hexToPixel(sub.q, sub.r);
     const subConfig = CONFIG.SUBMARINE_TYPES[sub.type];
     
@@ -278,6 +300,19 @@ function HexMap() {
       false;
     
     if (!isVisible && !isOwn) return;
+    
+    if (player?.allianceColor && sub.status !== 'sunk') {
+      ctx.beginPath();
+      ctx.arc(x, y + 3, HEX_SIZE * 0.6, 0, Math.PI * 2);
+      ctx.strokeStyle = player.allianceColor;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.7;
+      ctx.stroke();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = player.allianceColor;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     
     ctx.beginPath();
     ctx.arc(x, y + 3, HEX_SIZE * 0.45, 0, Math.PI * 2);
@@ -700,6 +735,29 @@ function HexMap() {
 
   const handleContextMenu = (e) => {
     e.preventDefault();
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left - offset.x) / zoom;
+    const mouseY = (e.clientY - rect.top - offset.y) / zoom;
+    
+    const hex = pixelToHex(mouseX, mouseY);
+    
+    const myAlliance = gameState?.alliances?.myAlliance;
+    const currentPlayerId = gameState?.currentPlayer?.id;
+    
+    if (myAlliance) {
+      for (const player of gameState.players) {
+        if (player.id !== currentPlayerId && 
+            myAlliance.members.includes(player.id) &&
+            player.base && 
+            player.base.q === hex.q && 
+            player.base.r === hex.r) {
+          setTransferDialogTarget(player.id);
+          return;
+        }
+      }
+    }
+    
     if (selectedSubmarine) {
       setSelectedSubmarine(null);
       setPathPreview([]);

@@ -1,6 +1,7 @@
 const HexMap = require('./HexMap');
 const Player = require('./Player');
 const CombatSystem = require('./CombatSystem');
+const AllianceManager = require('./AllianceManager');
 const CONFIG = require('./config');
 const { v4: uuidv4 } = require('uuid');
 
@@ -19,6 +20,7 @@ class Game {
     this.isFinished = false;
     this.ruins = [];
     this.scoreRankings = [];
+    this.allianceManager = null;
     
     this.planningTimer = CONFIG.PLANNING_TIME;
     this.currentDirection = 0;
@@ -39,6 +41,11 @@ class Game {
       );
       this.players.push(player);
       this.map.getTile(pos.q, pos.r).owner = player.id;
+    }
+
+    this.allianceManager = new AllianceManager(this);
+
+    for (const player of this.players) {
       this.updateVisibility(player);
     }
 
@@ -89,29 +96,49 @@ class Game {
       tile.visible.delete(player.id);
     }
     
-    const baseRange = player.base.getSonarRange();
-    const baseTiles = this.map.getTilesInRange(player.base.q, player.base.r, baseRange);
+    this.addVisibilityForPlayer(player);
+
+    if (this.allianceManager) {
+      const alliance = this.allianceManager.getPlayerAlliance(player.id);
+      if (alliance) {
+        for (const allyId of alliance.members) {
+          if (allyId !== player.id) {
+            const ally = this.getPlayer(allyId);
+            if (ally && !ally.isDefeated) {
+              this.addVisibilityForPlayer(ally, player.id);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  addVisibilityForPlayer(sourcePlayer, targetPlayerId = null) {
+    const playerId = targetPlayerId || sourcePlayer.id;
+    
+    const baseRange = sourcePlayer.base.getSonarRange();
+    const baseTiles = this.map.getTilesInRange(sourcePlayer.base.q, sourcePlayer.base.r, baseRange);
     for (const tile of baseTiles) {
-      tile.explored.add(player.id);
-      tile.visible.add(player.id);
+      tile.explored.add(playerId);
+      tile.visible.add(playerId);
     }
     
-    for (const sub of player.submarines) {
+    for (const sub of sourcePlayer.submarines) {
       if (sub.status === 'sunk' || sub.status === 'adrift') continue;
       
       const range = sub.sonarMode === 'active' ? sub.sonarRange : Math.ceil(sub.sonarRange / 2);
       const tiles = this.map.getTilesInRange(sub.q, sub.r, range);
       for (const tile of tiles) {
-        tile.explored.add(player.id);
-        tile.visible.add(player.id);
+        tile.explored.add(playerId);
+        tile.visible.add(playerId);
       }
     }
     
-    for (const buoy of player.sonarBuoys) {
+    for (const buoy of sourcePlayer.sonarBuoys) {
       const buoyTiles = this.map.getTilesInRange(buoy.q, buoy.r, buoy.range);
       for (const tile of buoyTiles) {
-        tile.explored.add(player.id);
-        tile.visible.add(player.id);
+        tile.explored.add(playerId);
+        tile.visible.add(playerId);
       }
     }
   }
@@ -358,8 +385,27 @@ class Game {
   }
 
   processCombat() {
-    const combatEvents = CombatSystem.processCombat(this.players, this.map);
+    const combatEvents = CombatSystem.processCombat(this.players, this.map, this.allianceManager);
     this.combatLog.push(...combatEvents);
+    
+    for (const event of combatEvents) {
+      if (event.type === 'torpedo_hit' && this.allianceManager) {
+        const alertedAllies = this.allianceManager.checkAllyUnderAttack(
+          event.targetPlayerId,
+          event.attackerPlayerId
+        );
+        for (const allyId of alertedAllies) {
+          this.eventLog.push({
+            type: 'ally_under_attack',
+            targetPlayerId: event.targetPlayerId,
+            attackerPlayerId: event.attackerPlayerId,
+            alertFor: allyId,
+            turn: this.turn,
+            message: `你的盟友遭到攻击！`
+          });
+        }
+      }
+    }
     
     for (const player of this.players) {
       player.submarines = player.submarines.filter(s => s.status !== 'sunk');
@@ -645,6 +691,10 @@ class Game {
   endTurn() {
     this.turn++;
     
+    if (this.allianceManager) {
+      this.allianceManager.processTurnEnd();
+    }
+    
     const alivePlayers = this.players.filter(p => !p.isDefeated);
     if (alivePlayers.length <= 1) {
       this.endGame(alivePlayers[0] || null);
@@ -843,6 +893,17 @@ class Game {
     const player = this.getPlayer(playerId);
     if (!player) return null;
     
+    const getPlayerAllianceInfo = (pid) => {
+      if (!this.allianceManager) return null;
+      const alliance = this.allianceManager.getPlayerAlliance(pid);
+      if (!alliance) return null;
+      return {
+        allianceId: alliance.id,
+        allianceName: alliance.name,
+        allianceColor: alliance.color
+      };
+    };
+    
     return {
       gameId: this.id,
       roomCode: this.roomCode,
@@ -850,8 +911,14 @@ class Game {
       phase: this.phase,
       planningTimer: this.planningTimer,
       playerCount: this.playerCount,
-      currentPlayer: player.toPrivateState(),
-      players: this.players.map(p => p.toPublicState()),
+      currentPlayer: {
+        ...player.toPrivateState(),
+        ...getPlayerAllianceInfo(playerId)
+      },
+      players: this.players.map(p => ({
+        ...p.toPublicState(),
+        ...getPlayerAllianceInfo(p.id)
+      })),
       map: this.map.getPublicState(playerId),
       combatLog: this.combatLog,
       eventLog: this.eventLog,
@@ -859,8 +926,68 @@ class Game {
       isFinished: this.isFinished,
       currentDirection: this.map ? this.map.currentDirection : null,
       ruins: this.getAllRuinsState(),
-      scoreRankings: this.scoreRankings
+      scoreRankings: this.scoreRankings,
+      alliances: this.allianceManager ? this.allianceManager.getStateForPlayer(playerId) : null
     };
+  }
+
+  createAlliance(playerId, name) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    const result = this.allianceManager.createAlliance(playerId, name);
+    if (result.success) {
+      for (const p of this.players) {
+        this.updateVisibility(p);
+      }
+    }
+    return result;
+  }
+
+  applyToAlliance(playerId, allianceId) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    return this.allianceManager.applyToAlliance(playerId, allianceId);
+  }
+
+  acceptApplication(leaderId, allianceId, applicantId) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    const result = this.allianceManager.acceptApplication(leaderId, allianceId, applicantId);
+    if (result.success) {
+      for (const p of this.players) {
+        this.updateVisibility(p);
+      }
+    }
+    return result;
+  }
+
+  rejectApplication(leaderId, allianceId, applicantId) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    return this.allianceManager.rejectApplication(leaderId, allianceId, applicantId);
+  }
+
+  leaveAlliance(playerId) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    const result = this.allianceManager.leaveAlliance(playerId);
+    if (result.success) {
+      for (const p of this.players) {
+        this.updateVisibility(p);
+      }
+    }
+    return result;
+  }
+
+  kickMember(leaderId, allianceId, memberId) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    const result = this.allianceManager.kickMember(leaderId, allianceId, memberId);
+    if (result.success) {
+      for (const p of this.players) {
+        this.updateVisibility(p);
+      }
+    }
+    return result;
+  }
+
+  transferResources(fromPlayerId, toPlayerId, resources) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    return this.allianceManager.createTransportMission(fromPlayerId, toPlayerId, resources);
   }
 }
 

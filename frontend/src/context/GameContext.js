@@ -11,6 +11,9 @@ export function GameProvider({ children }) {
   const [selectedSubmarine, setSelectedSubmarine] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
   const [buoyDeployMode, setBuoyDeployMode] = useState(false);
+  const [allyAttackAlert, setAllyAttackAlert] = useState(null);
+  const [showAlliancePanel, setShowAlliancePanel] = useState(false);
+  const [transferDialogTarget, setTransferDialogTarget] = useState(null);
 
   useEffect(() => {
     const handleConnect = () => setIsConnected(true);
@@ -20,6 +23,18 @@ export function GameProvider({ children }) {
       setGameState(state);
       if (state.currentPlayer) {
         setPlayerId(state.currentPlayer.id);
+      }
+      
+      if (state.eventLog) {
+        for (const event of state.eventLog) {
+          if (event.type === 'ally_under_attack' && event.alertFor === state.currentPlayer?.id) {
+            setAllyAttackAlert(event);
+            setTimeout(() => {
+              setAllyAttackAlert(null);
+            }, 3000);
+            break;
+          }
+        }
       }
     };
     
@@ -113,6 +128,37 @@ export function GameProvider({ children }) {
     setRoomState(null);
     setSelectedSubmarine(null);
     setSelectedTile(null);
+    setShowAlliancePanel(false);
+    setTransferDialogTarget(null);
+  }, []);
+
+  const createAlliance = useCallback((name) => {
+    gameWS.createAlliance(name);
+  }, []);
+
+  const applyAlliance = useCallback((allianceId) => {
+    gameWS.applyAlliance(allianceId);
+  }, []);
+
+  const acceptAllianceApplication = useCallback((allianceId, applicantId) => {
+    gameWS.acceptAllianceApplication(allianceId, applicantId);
+  }, []);
+
+  const rejectAllianceApplication = useCallback((allianceId, applicantId) => {
+    gameWS.rejectAllianceApplication(allianceId, applicantId);
+  }, []);
+
+  const leaveAlliance = useCallback(() => {
+    gameWS.leaveAlliance();
+  }, []);
+
+  const kickAllianceMember = useCallback((allianceId, memberId) => {
+    gameWS.kickAllianceMember(allianceId, memberId);
+  }, []);
+
+  const transferResources = useCallback((toPlayerId, resources) => {
+    gameWS.transferResources(toPlayerId, resources);
+    setTransferDialogTarget(null);
   }, []);
 
   const value = {
@@ -123,9 +169,14 @@ export function GameProvider({ children }) {
     selectedSubmarine,
     selectedTile,
     buoyDeployMode,
+    allyAttackAlert,
+    showAlliancePanel,
+    transferDialogTarget,
     setSelectedSubmarine,
     setSelectedTile,
     setBuoyDeployMode,
+    setShowAlliancePanel,
+    setTransferDialogTarget,
     connect,
     createRoom,
     joinRoom,
@@ -139,7 +190,14 @@ export function GameProvider({ children }) {
     setSonarMode,
     deploySonarBuoy,
     endTurn,
-    leaveRoom
+    leaveRoom,
+    createAlliance,
+    applyAlliance,
+    acceptAllianceApplication,
+    rejectAllianceApplication,
+    leaveAlliance,
+    kickAllianceMember,
+    transferResources
   };
 
   return (
