@@ -80,8 +80,8 @@ class Alliance {
     return this.members.length >= 3;
   }
 
-  toPublicState() {
-    return {
+  toPublicState(nameResolver = null) {
+    const state = {
       id: this.id,
       name: this.name,
       color: this.color,
@@ -89,12 +89,26 @@ class Alliance {
       members: [...this.members],
       memberCount: this.members.length
     };
+    if (nameResolver) {
+      state.memberNames = {};
+      for (const memberId of this.members) {
+        state.memberNames[memberId] = nameResolver(memberId);
+      }
+      state.leaderName = nameResolver(this.leaderId);
+    }
+    return state;
   }
 
-  toPrivateState(playerId) {
-    const state = this.toPublicState();
+  toPrivateState(playerId, nameResolver = null) {
+    const state = this.toPublicState(nameResolver);
     if (this.isMember(playerId)) {
       state.pendingApplications = [...this.pendingApplications];
+      if (nameResolver) {
+        state.pendingApplicationNames = {};
+        for (const appId of this.pendingApplications) {
+          state.pendingApplicationNames[appId] = nameResolver(appId);
+        }
+      }
     }
     return state;
   }
@@ -465,11 +479,15 @@ class AllianceManager {
 
   getStateForPlayer(playerId) {
     const playerAlliance = this.getPlayerAlliance(playerId);
+    const nameResolver = (id) => {
+      const p = this.game.getPlayer(id);
+      return p ? p.name : 'Unknown';
+    };
     
     return {
-      myAlliance: playerAlliance ? playerAlliance.toPrivateState(playerId) : null,
-      availableAlliances: this.getAlliancesForPlayer(playerId).map(a => a.toPublicState()),
-      allAlliances: this.getAllAlliances().map(a => a.toPublicState())
+      myAlliance: playerAlliance ? playerAlliance.toPrivateState(playerId, nameResolver) : null,
+      availableAlliances: this.getAlliancesForPlayer(playerId).map(a => a.toPublicState(nameResolver)),
+      allAlliances: this.getAllAlliances().map(a => a.toPublicState(nameResolver))
     };
   }
 

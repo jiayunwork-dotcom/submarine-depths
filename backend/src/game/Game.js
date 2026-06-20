@@ -91,7 +91,7 @@ class Game {
     return this.players.find(p => p.id === playerId);
   }
 
-  updateVisibility(player) {
+  updateVisibility(player, skipAllies = false) {
     for (const [key, tile] of this.map.tiles) {
       tile.visible.delete(player.id);
     }
@@ -106,6 +106,17 @@ class Game {
             const ally = this.getPlayer(allyId);
             if (ally && !ally.isDefeated) {
               this.addVisibilityForPlayer(ally, player.id);
+            }
+          }
+        }
+
+        if (!skipAllies) {
+          for (const allyId of alliance.members) {
+            if (allyId !== player.id) {
+              const ally = this.getPlayer(allyId);
+              if (ally && !ally.isDefeated) {
+                this.updateVisibility(ally, true);
+              }
             }
           }
         }

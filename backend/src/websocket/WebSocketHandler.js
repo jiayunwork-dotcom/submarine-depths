@@ -378,7 +378,11 @@ class WebSocketHandler {
     const result = game.createAlliance(gamePlayerId, name);
     
     if (result.success) {
-      this.send(ws, 'alliance_created', { alliance: result.alliance.toPublicState() });
+      const nameResolver = (id) => {
+        const p = game.getPlayer(id);
+        return p ? p.name : 'Unknown';
+      };
+      this.send(ws, 'alliance_created', { alliance: result.alliance.toPublicState(nameResolver) });
     } else {
       this.send(ws, 'error', { message: result.message });
     }

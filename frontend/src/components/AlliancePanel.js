@@ -20,11 +20,26 @@ function AlliancePanel() {
   const myAlliance = gameState?.alliances?.myAlliance;
   const availableAlliances = gameState?.alliances?.availableAlliances || [];
   const currentPlayerId = gameState?.currentPlayer?.id;
-  const players = gameState?.players || [];
 
   const getPlayerName = (playerId) => {
+    if (myAlliance?.memberNames && myAlliance.memberNames[playerId]) {
+      return myAlliance.memberNames[playerId];
+    }
+    const players = gameState?.players || [];
     const player = players.find(p => p.id === playerId);
     return player?.name || 'Unknown';
+  };
+
+  const getApplicantName = (applicantId) => {
+    if (myAlliance?.pendingApplicationNames && myAlliance.pendingApplicationNames[applicantId]) {
+      return myAlliance.pendingApplicationNames[applicantId];
+    }
+    return getPlayerName(applicantId);
+  };
+
+  const getLeaderName = (alliance) => {
+    if (alliance.leaderName) return alliance.leaderName;
+    return getPlayerName(alliance.leaderId);
   };
 
   const handleCreateAlliance = () => {
@@ -119,7 +134,7 @@ function AlliancePanel() {
               <h4>待审批申请</h4>
               {myAlliance.pendingApplications.map(applicantId => (
                 <div key={applicantId} className="application-item">
-                  <span>{getPlayerName(applicantId)}</span>
+                  <span>{getApplicantName(applicantId)}</span>
                   <div className="application-actions">
                     <button
                       className="accept-btn"
@@ -179,7 +194,7 @@ function AlliancePanel() {
                   </div>
                 </div>
                 <div className="alliance-card-info">
-                  成员: {alliance.memberCount}/3 · 盟主: {getPlayerName(alliance.leaderId)}
+                  成员: {alliance.memberCount}/3 · 盟主: {getLeaderName(alliance)}
                 </div>
                   <button
                     className="apply-btn"
