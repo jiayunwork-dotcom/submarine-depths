@@ -65,6 +65,20 @@
   margin: 3px 0;
 }
 
+.current-info {
+  color: #64b5f6;
+  font-weight: 500;
+}
+
+.current-hint {
+  color: #78909c;
+  font-size: 11px;
+}
+
+.buoy-deploy-cursor {
+  cursor: crosshair;
+}
+
 .minimap {
   position: absolute;
   bottom: 20px;

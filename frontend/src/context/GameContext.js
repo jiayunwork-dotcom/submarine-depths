@@ -10,6 +10,7 @@ export function GameProvider({ children }) {
   const [isConnected, setIsConnected] = useState(false);
   const [selectedSubmarine, setSelectedSubmarine] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
+  const [buoyDeployMode, setBuoyDeployMode] = useState(false);
 
   useEffect(() => {
     const handleConnect = () => setIsConnected(true);
@@ -97,6 +98,11 @@ export function GameProvider({ children }) {
     gameWS.setSonarMode(submarineId, mode);
   }, []);
 
+  const deploySonarBuoy = useCallback((q, r) => {
+    gameWS.deploySonarBuoy(q, r);
+    setBuoyDeployMode(false);
+  }, []);
+
   const endTurn = useCallback(() => {
     gameWS.endTurn();
   }, []);
@@ -116,8 +122,10 @@ export function GameProvider({ children }) {
     isConnected,
     selectedSubmarine,
     selectedTile,
+    buoyDeployMode,
     setSelectedSubmarine,
     setSelectedTile,
+    setBuoyDeployMode,
     connect,
     createRoom,
     joinRoom,
@@ -129,6 +137,7 @@ export function GameProvider({ children }) {
     research,
     fireTorpedo,
     setSonarMode,
+    deploySonarBuoy,
     endTurn,
     leaveRoom
   };

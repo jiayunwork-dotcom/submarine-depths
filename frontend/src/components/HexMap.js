@@ -1,12 +1,12 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
-import { CONFIG, HEX_SIZE, hexToPixel, pixelToHex, getHexCorners, hexDistance } from '../game/gameConfig';
+import { CONFIG, HEX_SIZE, hexToPixel, pixelToHex, getHexCorners, hexDistance, getMovementCost, getCurrentDirectionName } from '../game/gameConfig';
 import '../styles/HexMap.css';
 
 function HexMap() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const { gameState, selectedSubmarine, setSelectedSubmarine, setSelectedTile, moveSubmarine } = useGame();
+  const { gameState, selectedSubmarine, setSelectedSubmarine, setSelectedTile, moveSubmarine, buoyDeployMode, deploySonarBuoy } = useGame();
   
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -15,15 +15,32 @@ function HexMap() {
   const [offsetStart, setOffsetStart] = useState({ x: 0, y: 0 });
   const [hoveredHex, setHoveredHex] = useState(null);
   const [pathPreview, setPathPreview] = useState([]);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
-  const canvasWidth = 800;
-  const canvasHeight = 600;
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateSize = () => {
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const width = Math.floor(rect.width);
+      const height = Math.floor(rect.height);
+      setCanvasSize({ width, height, dpr });
+    };
+
+    updateSize();
+
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   useEffect(() => {
     if (gameState && gameState.currentPlayer) {
       const base = gameState.currentPlayer.base;
       const { x, y } = hexToPixel(base.q, base.r);
-      setOffset({ x: canvasWidth / 2 - x, y: canvasHeight / 2 - y });
+      setOffset({ x: canvasSize.width / 2 - x, y: canvasSize.height / 2 - y });
     }
   }, [gameState?.currentPlayer?.id]);
 
@@ -31,8 +48,15 @@ function HexMap() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const dpr = canvasSize.dpr || 1;
+    canvas.width = canvasSize.width * dpr;
+    canvas.height = canvasSize.height * dpr;
+    canvas.style.width = canvasSize.width + 'px';
+    canvas.style.height = canvasSize.height + 'px';
+
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
     
     if (!gameState || !gameState.map) return;
 
@@ -66,6 +90,16 @@ function HexMap() {
       }
     }
 
+    drawSonarBuoys(ctx);
+
+    if (buoyDeployMode) {
+      drawBuoyDeployOverlay(ctx);
+    }
+
+    if (gameState.currentDirection) {
+      drawCurrentIndicators(ctx);
+    }
+
     if (hoveredHex) {
       drawHoverHighlight(ctx, hoveredHex);
     }
@@ -79,7 +113,7 @@ function HexMap() {
     }
 
     ctx.restore();
-  }, [gameState, offset, zoom, hoveredHex, selectedSubmarine, pathPreview]);
+  }, [gameState, offset, zoom, hoveredHex, selectedSubmarine, pathPreview, canvasSize]);
 
   const drawTile = (ctx, tile) => {
     const { x, y } = hexToPixel(tile.q, tile.r);
@@ -267,28 +301,175 @@ function HexMap() {
     const sub = gameState.currentPlayer.submarines.find(s => s.id === selectedSubmarine);
     if (!sub) return;
     
-    ctx.strokeStyle = '#ffd700';
     ctx.lineWidth = 3;
     ctx.setLineDash([8, 4]);
     
-    ctx.beginPath();
     const start = hexToPixel(sub.q, sub.r);
-    ctx.moveTo(start.x, start.y);
+    let prevX = start.x;
+    let prevY = start.y;
     
     for (const point of pathPreview) {
       const { x, y } = hexToPixel(point.q, point.r);
+      
+      ctx.beginPath();
+      ctx.moveTo(prevX, prevY);
       ctx.lineTo(x, y);
+      
+      if (point.cost === 0) {
+        ctx.strokeStyle = '#4caf50';
+      } else if (point.cost === 2) {
+        ctx.strokeStyle = '#f44336';
+      } else {
+        ctx.strokeStyle = '#ffd700';
+      }
+      ctx.stroke();
+      
+      prevX = x;
+      prevY = y;
     }
     
-    ctx.stroke();
     ctx.setLineDash([]);
     
     for (const point of pathPreview) {
       const { x, y } = hexToPixel(point.q, point.r);
       ctx.beginPath();
       ctx.arc(x, y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffd700';
+      if (point.cost === 0) {
+        ctx.fillStyle = '#4caf50';
+      } else if (point.cost === 2) {
+        ctx.fillStyle = '#f44336';
+      } else {
+        ctx.fillStyle = '#ffd700';
+      }
       ctx.fill();
+    }
+  };
+
+  const drawSonarBuoys = (ctx) => {
+    const myBuoys = gameState.currentPlayer?.sonarBuoys || [];
+    
+    for (const buoy of myBuoys) {
+      const { x, y } = hexToPixel(buoy.q, buoy.r);
+      
+      ctx.beginPath();
+      ctx.arc(x, y, HEX_SIZE * 0.35, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(100, 181, 246, 0.6)';
+      ctx.fill();
+      ctx.strokeStyle = '#64b5f6';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('📡', x, y);
+      
+      const rangeTiles = [];
+      for (let dq = -buoy.range; dq <= buoy.range; dq++) {
+        for (let dr = Math.max(-buoy.range, -dq - buoy.range); dr <= Math.min(buoy.range, -dq + buoy.range); dr++) {
+          const key = `${buoy.q + dq},${buoy.r + dr}`;
+          if (gameState.map[key]) rangeTiles.push(key);
+        }
+      }
+      
+      for (const tileKey of rangeTiles) {
+        const [tq, tr] = tileKey.split(',').map(Number);
+        const { x: tx, y: ty } = hexToPixel(tq, tr);
+        const corners = getHexCorners(tx, ty, HEX_SIZE * 0.95);
+        
+        ctx.beginPath();
+        ctx.moveTo(corners[0].x, corners[0].y);
+        for (let i = 1; i < 6; i++) {
+          ctx.lineTo(corners[i].x, corners[i].y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(100, 181, 246, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  };
+
+  const drawBuoyDeployOverlay = (ctx) => {
+    const buoys = gameState.currentPlayer?.sonarBuoys || [];
+    
+    const allVisibleTiles = Object.values(gameState.map).filter(t => t.visible);
+    for (const tile of allVisibleTiles) {
+      const { x, y } = hexToPixel(tile.q, tile.r);
+      const corners = getHexCorners(x, y, HEX_SIZE * 0.95);
+      
+      ctx.beginPath();
+      ctx.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < 6; i++) {
+        ctx.lineTo(corners[i].x, corners[i].y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(100, 181, 246, 0.1)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(100, 181, 246, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    
+    if (hoveredHex) {
+      const { x, y } = hexToPixel(hoveredHex.q, hoveredHex.r);
+      
+      for (let dq = -3; dq <= 3; dq++) {
+        for (let dr = Math.max(-3, -dq - 3); dr <= Math.min(3, -dq + 3); dr++) {
+          const previewQ = hoveredHex.q + dq;
+          const previewR = hoveredHex.r + dr;
+          const key = `${previewQ},${previewR}`;
+          if (gameState.map[key]) {
+            const { x: tx, y: ty } = hexToPixel(previewQ, previewR);
+            const corners = getHexCorners(tx, ty, HEX_SIZE * 0.9);
+            
+            ctx.beginPath();
+            ctx.moveTo(corners[0].x, corners[0].y);
+            for (let i = 1; i < 6; i++) {
+              ctx.lineTo(corners[i].x, corners[i].y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(100, 181, 246, 0.15)';
+            ctx.fill();
+          }
+        }
+      }
+    }
+  };
+
+  const drawCurrentIndicators = (ctx) => {
+    const dir = gameState.currentDirection;
+    if (!dir) return;
+    
+    const visibleTiles = Object.values(gameState.map).filter(t => t.visible);
+    const step = 5;
+    
+    for (let i = 0; i < visibleTiles.length; i += step) {
+      const tile = visibleTiles[i];
+      const { x, y } = hexToPixel(tile.q, tile.r);
+      
+      const arrowLen = HEX_SIZE * 0.4;
+      const endX = x + dir.q * arrowLen * 1.5;
+      const endY = y + dir.r * arrowLen * 1.5;
+      
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(endX, endY);
+      ctx.strokeStyle = 'rgba(100, 200, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      const angle = Math.atan2(endY - y, endX - x);
+      const headLen = 6;
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
+      ctx.strokeStyle = 'rgba(100, 200, 255, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
   };
 
@@ -306,6 +487,7 @@ function HexMap() {
   };
 
   const handleMouseDown = (e) => {
+    if (buoyDeployMode && e.button === 0) return;
     if (e.button === 2 || e.button === 1) {
       setIsDragging(true);
       setDragStart({ x: e.clientX, y: e.clientY });
@@ -357,27 +539,50 @@ function HexMap() {
     }
   };
 
-  const calculatePath = (startQ, startR, endQ, endR, maxSteps) => {
+  const calculatePath = (startQ, startR, endQ, endR, maxMovement) => {
     const path = [];
     let currentQ = startQ;
     let currentR = startR;
-    let steps = 0;
+    let movementLeft = maxMovement;
     
-    while ((currentQ !== endQ || currentR !== endR) && steps < maxSteps) {
-      const dq = Math.sign(endQ - currentQ);
-      const dr = Math.sign(endR - currentR);
+    while ((currentQ !== endQ || currentR !== endR) && movementLeft >= 0) {
+      const dq = endQ - currentQ;
+      const dr = endR - currentR;
       
-      if (dq !== 0) {
-        currentQ += dq;
+      let stepQ = 0;
+      let stepR = 0;
+      
+      if (dq !== 0 && dr !== 0) {
+        const absDq = Math.abs(dq);
+        const absDr = Math.abs(dr);
+        if (absDq >= absDr) {
+          stepQ = Math.sign(dq);
+          stepR = dr !== 0 ? Math.sign(dr) : 0;
+        } else {
+          stepQ = dq !== 0 ? Math.sign(dq) : 0;
+          stepR = Math.sign(dr);
+        }
+      } else if (dq !== 0) {
+        stepQ = Math.sign(dq);
       } else if (dr !== 0) {
-        currentR += dr;
+        stepR = Math.sign(dr);
       }
       
-      const key = `${currentQ},${currentR}`;
+      const nextQ = currentQ + stepQ;
+      const nextR = currentR + stepR;
+      const key = `${nextQ},${nextR}`;
       if (!gameState.map[key]) break;
       
-      path.push({ q: currentQ, r: currentR });
-      steps++;
+      const cost = getMovementCost(currentQ, currentR, nextQ, nextR, gameState.currentDirection);
+      
+      if (cost > movementLeft) break;
+      
+      movementLeft -= cost;
+      currentQ = nextQ;
+      currentR = nextR;
+      path.push({ q: currentQ, r: currentR, cost });
+      
+      if (path.length > 50) break;
     }
     
     return path;
@@ -387,6 +592,11 @@ function HexMap() {
     const tileKey = `${hex.q},${hex.r}`;
     const tile = gameState.map[tileKey];
     if (!tile) return;
+
+    if (buoyDeployMode && gameState.phase === 'planning') {
+      deploySonarBuoy(hex.q, hex.r);
+      return;
+    }
 
     setSelectedTile({ q: hex.q, r: hex.r, ...tile });
 
@@ -434,7 +644,7 @@ function HexMap() {
 
   return (
     <div 
-      className="hex-map-container" 
+      className={`hex-map-container ${buoyDeployMode ? 'buoy-deploy-cursor' : ''}`}
       ref={containerRef}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -445,8 +655,6 @@ function HexMap() {
     >
       <canvas
         ref={canvasRef}
-        width={canvasWidth}
-        height={canvasHeight}
         className="hex-canvas"
       />
       
@@ -459,7 +667,7 @@ function HexMap() {
             if (gameState?.currentPlayer?.base) {
               const base = gameState.currentPlayer.base;
               const { x, y } = hexToPixel(base.q, base.r);
-              setOffset({ x: canvasWidth / 2 - x, y: canvasHeight / 2 - y });
+              setOffset({ x: canvasSize.width / 2 - x, y: canvasSize.height / 2 - y });
             }
           }}
         >
@@ -474,6 +682,12 @@ function HexMap() {
           <div>地形: {CONFIG.TERRAIN_TYPES[gameState.map[`${hoveredHex.q},${hoveredHex.r}`]?.terrain]?.name || '未知'}</div>
           {gameState.map[`${hoveredHex.q},${hoveredHex.r}`]?.resources > 0 && (
             <div>资源: {gameState.map[`${hoveredHex.q},${hoveredHex.r}`].resources}</div>
+          )}
+          {gameState.currentDirection && (
+            <div className="current-info">
+              洋流: → {getCurrentDirectionName(gameState.currentDirection)}
+              <span className="current-hint"> (顺流+2 / 逆流-1)</span>
+            </div>
           )}
         </div>
       )}

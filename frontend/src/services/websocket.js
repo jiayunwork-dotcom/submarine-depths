@@ -137,6 +137,10 @@ class GameWebSocket {
     this.send('set_sonar_mode', { submarineId, mode });
   }
 
+  deploySonarBuoy(q, r) {
+    this.send('deploy_sonar_buoy', { q, r });
+  }
+
   endTurn() {
     this.send('end_turn', {});
   }

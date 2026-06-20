@@ -4,7 +4,7 @@ import { CONFIG } from '../game/gameConfig';
 import '../styles/Sidebar.css';
 
 function Sidebar() {
-  const { gameState, selectedSubmarine, setSelectedSubmarine, setSonarMode } = useGame();
+  const { gameState, selectedSubmarine, setSelectedSubmarine, setSonarMode, buoyDeployMode, setBuoyDeployMode } = useGame();
 
   if (!gameState) return null;
 
@@ -134,6 +134,38 @@ function Sidebar() {
           </div>
         </div>
       )}
+
+      <div className="sidebar-section">
+        <h3 className="section-title">声呐浮标</h3>
+        <div className="buoy-section">
+          <div className="buoy-info">
+            <span>已部署: {currentPlayer?.sonarBuoys?.length || 0} / 10</span>
+            <span className="buoy-cost">费用: 15💎</span>
+          </div>
+          <button
+            className={`buoy-deploy-btn ${buoyDeployMode ? 'active' : ''}`}
+            onClick={() => setBuoyDeployMode(!buoyDeployMode)}
+          >
+            {buoyDeployMode ? '📡 取消部署' : '📡 部署浮标'}
+          </button>
+          {buoyDeployMode && (
+            <div className="buoy-hint">
+              点击地图上的格子放置浮标（需要附近2格内有潜艇）
+            </div>
+          )}
+          {currentPlayer?.sonarBuoys?.length > 0 && (
+            <div className="buoy-list">
+              {currentPlayer.sonarBuoys.map((buoy, index) => (
+                <div key={buoy.id || index} className="buoy-item">
+                  <span className="buoy-icon">📡</span>
+                  <span className="buoy-pos">({buoy.q}, {buoy.r})</span>
+                  <span className="buoy-range">范围{buoy.range}格</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="sidebar-section">
         <h3 className="section-title">玩家列表</h3>

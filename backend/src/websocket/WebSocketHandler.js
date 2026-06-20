@@ -70,6 +70,9 @@ class WebSocketHandler {
         case 'set_sonar_mode':
           this.handleSetSonarMode(ws, payload);
           break;
+        case 'deploy_sonar_buoy':
+          this.handleDeploySonarBuoy(ws, payload);
+          break;
         case 'end_turn':
           this.handleEndTurn(ws);
           break;
@@ -258,6 +261,25 @@ class WebSocketHandler {
     
     const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
     game.setSonarMode(gamePlayerId, submarineId, mode);
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleDeploySonarBuoy(ws, payload) {
+    const { q, r } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const success = game.deploySonarBuoy(gamePlayerId, q, r);
+    
+    if (success) {
+      this.send(ws, 'buoy_deployed', { q, r });
+    } else {
+      this.send(ws, 'error', { message: '无法部署声呐浮标（需要附近2格内有潜艇，15矿物，最多10个浮标）' });
+    }
     
     this.broadcastGameState(client.roomCode);
   }

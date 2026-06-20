@@ -96,6 +96,14 @@ class Game {
         tile.visible.add(player.id);
       }
     }
+    
+    for (const buoy of player.sonarBuoys) {
+      const buoyTiles = this.map.getTilesInRange(buoy.q, buoy.r, buoy.range);
+      for (const tile of buoyTiles) {
+        tile.explored.add(player.id);
+        tile.visible.add(player.id);
+      }
+    }
   }
 
   startPlanningPhase() {
@@ -144,6 +152,17 @@ class Game {
     }
   }
 
+  getMovementCost(fromQ, fromR, toQ, toR) {
+    const dq = toQ - fromQ;
+    const dr = toR - fromR;
+    const current = this.map.currentDirection;
+    if (!current) return 1;
+    const dot = dq * current.q + dr * current.r;
+    if (dot > 0) return 0;
+    if (dot < 0) return 2;
+    return 1;
+  }
+
   processSubmarineMovements() {
     for (const player of this.players) {
       if (player.isDefeated) continue;
@@ -152,8 +171,8 @@ class Game {
         if (sub.status === 'sunk' || sub.status === 'adrift') continue;
         
         if (sub.waypoints && sub.waypoints.length > 0) {
-          let moved = 0;
-          while (moved < sub.movementLeft && sub.waypoints.length > 0) {
+          let totalMoved = 0;
+          while (sub.waypoints.length > 0 && totalMoved < 100) {
             const next = sub.waypoints[0];
             const tile = this.map.getTile(next.q, next.r);
             
@@ -167,18 +186,61 @@ class Game {
                 type: 'move_blocked',
                 submarine: sub.id,
                 reason: 'depth',
-                message: `${sub.type} 无法下潜至 ${tile.depth}m`
+                message: `${CONFIG.SUBMARINE_TYPES[sub.type].name} 无法下潜至 ${tile.depth}m`
               });
               sub.waypoints = [];
               break;
             }
-            
-            sub.q = next.q;
-            sub.r = next.r;
-            sub.movementLeft--;
-            sub.consumeEnergy(1);
-            moved++;
-            sub.waypoints.shift();
+
+            const moveCost = this.getMovementCost(sub.q, sub.r, next.q, next.r);
+
+            if (moveCost === 0) {
+              sub.q = next.q;
+              sub.r = next.r;
+              sub.consumeEnergy(1);
+              sub.waypoints.shift();
+              this.eventLog.push({
+                type: 'current_boost',
+                submarine: sub.id,
+                turn: this.turn,
+                message: `${CONFIG.SUBMARINE_TYPES[sub.type].name} 顺流移动！额外前进2格`
+              });
+              totalMoved++;
+            } else if (moveCost === 2) {
+              if (sub.movementLeft < 2) {
+                this.eventLog.push({
+                  type: 'current_resist',
+                  submarine: sub.id,
+                  turn: this.turn,
+                  message: `${CONFIG.SUBMARINE_TYPES[sub.type].name} 逆流移动受阻，移动力不足`
+                });
+                sub.waypoints = [];
+                break;
+              }
+              sub.q = next.q;
+              sub.r = next.r;
+              sub.movementLeft -= 2;
+              sub.consumeEnergy(1);
+              sub.waypoints.shift();
+              this.eventLog.push({
+                type: 'current_resist',
+                submarine: sub.id,
+                turn: this.turn,
+                message: `${CONFIG.SUBMARINE_TYPES[sub.type].name} 逆流移动，消耗2点移动力`
+              });
+              totalMoved++;
+            } else {
+              if (sub.movementLeft < 1) {
+                sub.waypoints = [];
+                break;
+              }
+              sub.q = next.q;
+              sub.r = next.r;
+              sub.movementLeft -= 1;
+              sub.consumeEnergy(1);
+              sub.waypoints.shift();
+              totalMoved++;
+            }
             
             if (sub.status === 'adrift') break;
           }
@@ -500,6 +562,42 @@ class Game {
     if (!sub || sub.status === 'sunk') return false;
     
     sub.sonarMode = mode;
+    return true;
+  }
+
+  deploySonarBuoy(playerId, q, r) {
+    const player = this.getPlayer(playerId);
+    if (!player) return false;
+    
+    const tile = this.map.getTile(q, r);
+    if (!tile) return false;
+    
+    if (player.sonarBuoys.length >= 10) return false;
+    
+    if (player.base.storage.mineral < 15) return false;
+    
+    let subNearby = false;
+    for (const sub of player.submarines) {
+      const dist = this.map.getDistance(sub.q, sub.r, q, r);
+      if (dist <= 2 && sub.status !== 'sunk' && sub.status !== 'adrift') {
+        subNearby = true;
+        break;
+      }
+    }
+    if (!subNearby) return false;
+    
+    player.base.storage.mineral -= 15;
+    
+    player.sonarBuoys.push({
+      id: uuidv4(),
+      q,
+      r,
+      range: 3,
+      placedTurn: this.turn
+    });
+    
+    this.updateVisibility(player);
+    
     return true;
   }
 

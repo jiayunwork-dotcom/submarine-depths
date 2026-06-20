@@ -110,3 +110,31 @@ export function getHexCorners(cx, cy, size = HEX_SIZE) {
 export function hexDistance(q1, r1, q2, r2) {
   return Math.max(Math.abs(q1 - q2), Math.abs(r1 - r2), Math.abs((q1 + r1) - (q2 + r2)));
 }
+
+export const HEX_DIRECTIONS = [
+  { q: 1, r: 0 },
+  { q: 1, r: -1 },
+  { q: 0, r: -1 },
+  { q: -1, r: 0 },
+  { q: -1, r: 1 },
+  { q: 0, r: 1 }
+];
+
+export function getMovementCost(fromQ, fromR, toQ, toR, currentDirection) {
+  if (!currentDirection) return 1;
+  const dq = toQ - fromQ;
+  const dr = toR - fromR;
+  const dot = dq * currentDirection.q + dr * currentDirection.r;
+  if (dot > 0) return 0;
+  if (dot < 0) return 2;
+  return 1;
+}
+
+export function getCurrentDirectionName(dir) {
+  if (!dir) return '无';
+  const names = {
+    '1,0': '东', '1,-1': '东北', '0,-1': '西北',
+    '-1,0': '西', '-1,1': '西南', '0,1': '东南'
+  };
+  return names[`${dir.q},${dir.r}`] || '未知';
+}
