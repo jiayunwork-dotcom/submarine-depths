@@ -34,6 +34,9 @@ class Base {
     this.techPoints = 50;
     this.researched = new Set();
     this.researchProgress = {};
+    
+    this.effectiveTechs = new Set();
+    this.techSources = {};
   }
 
   getStorageUsed() {
@@ -170,6 +173,8 @@ class Base {
       storageCapacity: this.getStorageCapacity(),
       techPoints: this.techPoints,
       researched: Array.from(this.researched),
+      effectiveTechs: Array.from(this.effectiveTechs),
+      techSources: { ...this.techSources },
       researchQueue: [...this.researchQueue],
       researchProgress: { ...this.researchProgress },
       buildQueue: [...this.buildQueue],

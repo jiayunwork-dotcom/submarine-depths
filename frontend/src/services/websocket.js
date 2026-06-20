@@ -185,6 +185,22 @@ class GameWebSocket {
     this.send('transfer_resources', { toPlayerId, resources });
   }
 
+  declareWar(targetAllianceId) {
+    this.send('declare_war', { targetAllianceId });
+  }
+
+  castWarVote(voteId, support) {
+    this.send('cast_war_vote', { voteId, support });
+  }
+
+  proposeEndWar() {
+    this.send('propose_end_war', {});
+  }
+
+  castEndWarVote(voteId, support) {
+    this.send('cast_end_war_vote', { voteId, support });
+  }
+
   disconnect() {
     if (this.ws) {
       this.ws.close();

@@ -10,18 +10,42 @@ function ResearchPanel({ onClose }) {
 
   const base = gameState.currentPlayer.base;
   const researched = new Set(base.researched || []);
+  const effectiveTechs = new Set(base.effectiveTechs || []);
+  const techSources = base.techSources || {};
+
+  const getPlayerName = (playerId) => {
+    const players = gameState?.players || [];
+    const player = players.find(p => p.id === playerId);
+    return player?.name || 'Unknown';
+  };
+
+  const getTechSourceInfo = (techId) => {
+    const source = techSources[techId];
+    if (!source) return null;
+    
+    if (source.type === 'self') {
+      return { type: 'self', label: '自研' };
+    } else if (source.type === 'shared') {
+      return { 
+        type: 'shared', 
+        label: `盟友共享 · ${getPlayerName(source.playerId)}`,
+        contributorName: getPlayerName(source.playerId)
+      };
+    }
+    return null;
+  };
 
   const canResearch = (techId) => {
     const tech = CONFIG.RESEARCH_TECHS[techId];
     if (!tech) return false;
     if (researched.has(techId)) return false;
-    if (tech.prerequisite && !researched.has(tech.prerequisite)) return false;
+    if (tech.prerequisite && !effectiveTechs.has(tech.prerequisite)) return false;
     if (base.techPoints < tech.cost) return false;
     return true;
   };
 
   const getResearchStatus = (techId) => {
-    if (researched.has(techId)) return 'researched';
+    if (effectiveTechs.has(techId)) return 'researched';
     if (base.researchProgress?.[techId]) return 'researching';
     if (canResearch(techId)) return 'available';
     return 'locked';
@@ -74,19 +98,30 @@ function ResearchPanel({ onClose }) {
                 {tier.map(techId => {
                   const tech = CONFIG.RESEARCH_TECHS[techId];
                   const status = getResearchStatus(techId);
+                  const sourceInfo = getTechSourceInfo(techId);
+                  const isShared = sourceInfo?.type === 'shared';
                   
                   return (
                     <div
                       key={techId}
-                      className={`tech-card ${status}`}
+                      className={`tech-card ${status} ${isShared ? 'shared-tech' : ''}`}
                       onClick={() => handleResearch(techId)}
                     >
                       <div className="tech-header">
                         <span className="tech-name">{tech.name}</span>
                         <span className="tech-cost">🔬 {tech.cost}</span>
                       </div>
-                      <p className="tech-desc">{tech.description}</p>
-                      {status === 'researched' && (
+                      <p className="tech-desc">{tech.description || tech.effect}</p>
+                      {sourceInfo && (
+                        <div className={`tech-source ${sourceInfo.type}`}>
+                          {sourceInfo.type === 'self' ? (
+                            <span>✓ {sourceInfo.label}</span>
+                          ) : (
+                            <span>🤝 {sourceInfo.label}</span>
+                          )}
+                        </div>
+                      )}
+                      {status === 'researched' && !sourceInfo && (
                         <div className="tech-status completed">✓ 已完成</div>
                       )}
                       {status === 'researching' && (

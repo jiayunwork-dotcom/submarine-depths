@@ -47,6 +47,7 @@ class Game {
 
     for (const player of this.players) {
       this.updateVisibility(player);
+      this.allianceManager.updatePlayerEffectiveTechs(player.id);
     }
 
     this.ruins = [];
@@ -370,6 +371,10 @@ class Game {
           tech: completedTech,
           message: `${player.name} 完成了 ${CONFIG.RESEARCH_TECHS[completedTech].name} 研究`
         });
+        
+        if (this.allianceManager) {
+          this.allianceManager.onResearchComplete(player.id, completedTech);
+        }
       }
       
       if (player.base.modules.ECO_POD) {
@@ -962,6 +967,7 @@ class Game {
     if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
     const result = this.allianceManager.acceptApplication(leaderId, allianceId, applicantId);
     if (result.success) {
+      this.allianceManager.onMemberJoined(allianceId, applicantId);
       for (const p of this.players) {
         this.updateVisibility(p);
       }
@@ -976,8 +982,10 @@ class Game {
 
   leaveAlliance(playerId) {
     if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    const allianceId = this.allianceManager.playerAlliances.get(playerId);
     const result = this.allianceManager.leaveAlliance(playerId);
-    if (result.success) {
+    if (result.success && allianceId) {
+      this.allianceManager.onMemberLeft(allianceId, playerId);
       for (const p of this.players) {
         this.updateVisibility(p);
       }
@@ -989,6 +997,7 @@ class Game {
     if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
     const result = this.allianceManager.kickMember(leaderId, allianceId, memberId);
     if (result.success) {
+      this.allianceManager.onMemberLeft(allianceId, memberId);
       for (const p of this.players) {
         this.updateVisibility(p);
       }
@@ -999,6 +1008,26 @@ class Game {
   transferResources(fromPlayerId, toPlayerId, resources) {
     if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
     return this.allianceManager.createTransportMission(fromPlayerId, toPlayerId, resources);
+  }
+
+  declareWar(leaderId, targetAllianceId) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    return this.allianceManager.declareWar(leaderId, targetAllianceId);
+  }
+
+  castWarVote(playerId, voteId, support) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    return this.allianceManager.castWarVote(playerId, voteId, support);
+  }
+
+  proposeEndWar(leaderId) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    return this.allianceManager.proposeEndWar(leaderId);
+  }
+
+  castEndWarVote(playerId, voteId, support) {
+    if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
+    return this.allianceManager.castEndWarVote(playerId, voteId, support);
   }
 }
 

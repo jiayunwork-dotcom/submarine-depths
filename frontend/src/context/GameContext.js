@@ -14,6 +14,8 @@ export function GameProvider({ children }) {
   const [allyAttackAlert, setAllyAttackAlert] = useState(null);
   const [showAlliancePanel, setShowAlliancePanel] = useState(false);
   const [transferDialogTarget, setTransferDialogTarget] = useState(null);
+  const [activeVoteDialog, setActiveVoteDialog] = useState(null);
+  const [allianceTab, setAllianceTab] = useState('members');
 
   useEffect(() => {
     const handleConnect = () => setIsConnected(true);
@@ -161,6 +163,24 @@ export function GameProvider({ children }) {
     setTransferDialogTarget(null);
   }, []);
 
+  const declareWar = useCallback((targetAllianceId) => {
+    gameWS.declareWar(targetAllianceId);
+  }, []);
+
+  const castWarVote = useCallback((voteId, support) => {
+    gameWS.castWarVote(voteId, support);
+    setActiveVoteDialog(null);
+  }, []);
+
+  const proposeEndWar = useCallback(() => {
+    gameWS.proposeEndWar();
+  }, []);
+
+  const castEndWarVote = useCallback((voteId, support) => {
+    gameWS.castEndWarVote(voteId, support);
+    setActiveVoteDialog(null);
+  }, []);
+
   const value = {
     gameState,
     roomState,
@@ -172,11 +192,15 @@ export function GameProvider({ children }) {
     allyAttackAlert,
     showAlliancePanel,
     transferDialogTarget,
+    activeVoteDialog,
+    allianceTab,
     setSelectedSubmarine,
     setSelectedTile,
     setBuoyDeployMode,
     setShowAlliancePanel,
     setTransferDialogTarget,
+    setActiveVoteDialog,
+    setAllianceTab,
     connect,
     createRoom,
     joinRoom,
@@ -197,7 +221,11 @@ export function GameProvider({ children }) {
     rejectAllianceApplication,
     leaveAlliance,
     kickAllianceMember,
-    transferResources
+    transferResources,
+    declareWar,
+    castWarVote,
+    proposeEndWar,
+    castEndWarVote
   };
 
   return (

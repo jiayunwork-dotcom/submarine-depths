@@ -106,6 +106,18 @@ class WebSocketHandler {
         case 'transfer_resources':
           this.handleTransferResources(ws, payload);
           break;
+        case 'declare_war':
+          this.handleDeclareWar(ws, payload);
+          break;
+        case 'cast_war_vote':
+          this.handleCastWarVote(ws, payload);
+          break;
+        case 'propose_end_war':
+          this.handleProposeEndWar(ws);
+          break;
+        case 'cast_end_war_vote':
+          this.handleCastEndWarVote(ws, payload);
+          break;
         default:
           console.log('Unknown message type:', type);
       }
@@ -496,6 +508,81 @@ class WebSocketHandler {
     
     if (result.success) {
       this.send(ws, 'resources_transferred', { toPlayerId, resources });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleDeclareWar(ws, payload) {
+    const { targetAllianceId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.declareWar(gamePlayerId, targetAllianceId);
+    
+    if (result.success) {
+      this.send(ws, 'war_declaration_initiated', result);
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleCastWarVote(ws, payload) {
+    const { voteId, support } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.castWarVote(gamePlayerId, voteId, support);
+    
+    if (result.success) {
+      this.send(ws, 'war_vote_cast', result);
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleProposeEndWar(ws) {
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.proposeEndWar(gamePlayerId);
+    
+    if (result.success) {
+      this.send(ws, 'end_war_proposed', result);
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleCastEndWarVote(ws, payload) {
+    const { voteId, support } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.castEndWarVote(gamePlayerId, voteId, support);
+    
+    if (result.success) {
+      this.send(ws, 'end_war_vote_cast', result);
     } else {
       this.send(ws, 'error', { message: result.message });
     }

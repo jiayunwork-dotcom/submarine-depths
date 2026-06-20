@@ -409,3 +409,32 @@
   color: #78909c;
   font-size: 14px;
 }
+
+.tech-card.shared-tech {
+  border: 2px dashed rgba(100, 181, 246, 0.6);
+  background: rgba(100, 181, 246, 0.08);
+}
+
+.tech-card.shared-tech.researched {
+  border: 2px dashed rgba(76, 175, 80, 0.6);
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.tech-source {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.tech-source.self {
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+}
+
+.tech-source.shared {
+  background: rgba(100, 181, 246, 0.2);
+  color: #64b5f6;
+}

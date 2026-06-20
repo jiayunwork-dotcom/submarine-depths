@@ -23,6 +23,15 @@ class Alliance {
     this.pendingApplications = [];
     this.createdTurn = 0;
     this.lastMemberJoinedTurn = 0;
+    
+    this.warState = {
+      atWarWith: null,
+      warStartTurn: 0
+    };
+    
+    this.activeVotes = new Map();
+    
+    this.sharedTechs = new Map();
   }
 
   isLeader(playerId) {
@@ -80,6 +89,103 @@ class Alliance {
     return this.members.length >= 3;
   }
 
+  isAtWar() {
+    return this.warState.atWarWith !== null;
+  }
+
+  getEnemyAllianceId() {
+    return this.warState.atWarWith;
+  }
+
+  startWar(enemyAllianceId, turn) {
+    this.warState.atWarWith = enemyAllianceId;
+    this.warState.warStartTurn = turn;
+  }
+
+  endWar() {
+    this.warState.atWarWith = null;
+    this.warState.warStartTurn = 0;
+  }
+
+  createVote(voteType, data = {}) {
+    const voteId = uuidv4();
+    const vote = {
+      id: voteId,
+      type: voteType,
+      data,
+      votes: new Map(),
+      startTime: Date.now()
+    };
+    this.activeVotes.set(voteId, vote);
+    return voteId;
+  }
+
+  getVote(voteId) {
+    return this.activeVotes.get(voteId) || null;
+  }
+
+  castVote(voteId, playerId, support) {
+    const vote = this.activeVotes.get(voteId);
+    if (!vote) return false;
+    if (!this.isMember(playerId)) return false;
+    vote.votes.set(playerId, support);
+    return true;
+  }
+
+  getVoteResult(voteId) {
+    const vote = this.activeVotes.get(voteId);
+    if (!vote) return null;
+    
+    const totalMembers = this.members.length;
+    const requiredVotes = Math.ceil(totalMembers * 2 / 3);
+    let supportCount = 0;
+    
+    for (const [playerId, support] of vote.votes) {
+      if (support) supportCount++;
+    }
+    
+    return {
+      passed: supportCount >= requiredVotes,
+      supportCount,
+      requiredVotes,
+      totalMembers,
+      votes: Object.fromEntries(vote.votes)
+    };
+  }
+
+  removeVote(voteId) {
+    return this.activeVotes.delete(voteId);
+  }
+
+  addSharedTech(techId, contributorId) {
+    this.sharedTechs.set(techId, contributorId);
+  }
+
+  removeSharedTech(techId) {
+    this.sharedTechs.delete(techId);
+  }
+
+  removeSharedTechsByContributor(contributorId) {
+    const techsToRemove = [];
+    for (const [techId, contributor] of this.sharedTechs) {
+      if (contributor === contributorId) {
+        techsToRemove.push(techId);
+      }
+    }
+    for (const techId of techsToRemove) {
+      this.sharedTechs.delete(techId);
+    }
+    return techsToRemove;
+  }
+
+  getSharedTechs() {
+    return Object.fromEntries(this.sharedTechs);
+  }
+
+  getTechContributor(techId) {
+    return this.sharedTechs.get(techId) || null;
+  }
+
   toPublicState(nameResolver = null) {
     const state = {
       id: this.id,
@@ -87,7 +193,11 @@ class Alliance {
       color: this.color,
       leaderId: this.leaderId,
       members: [...this.members],
-      memberCount: this.members.length
+      memberCount: this.members.length,
+      warState: {
+        atWarWith: this.warState.atWarWith,
+        warStartTurn: this.warState.warStartTurn
+      }
     };
     if (nameResolver) {
       state.memberNames = {};
@@ -103,6 +213,20 @@ class Alliance {
     const state = this.toPublicState(nameResolver);
     if (this.isMember(playerId)) {
       state.pendingApplications = [...this.pendingApplications];
+      state.activeVotes = Array.from(this.activeVotes.values()).map(v => ({
+        id: v.id,
+        type: v.type,
+        data: v.data,
+        votes: Object.fromEntries(v.votes)
+      }));
+      state.sharedTechs = Object.fromEntries(this.sharedTechs);
+      state.techContributions = {};
+      for (const [techId, contributorId] of this.sharedTechs) {
+        if (!state.techContributions[contributorId]) {
+          state.techContributions[contributorId] = [];
+        }
+        state.techContributions[contributorId].push(techId);
+      }
       if (nameResolver) {
         state.pendingApplicationNames = {};
         for (const appId of this.pendingApplications) {
@@ -503,6 +627,416 @@ class AllianceManager {
     }
 
     return alertedAllies;
+  }
+
+  areAtWar(allianceId1, allianceId2) {
+    if (!allianceId1 || !allianceId2) return false;
+    const alliance1 = this.getAlliance(allianceId1);
+    const alliance2 = this.getAlliance(allianceId2);
+    if (!alliance1 || !alliance2) return false;
+    return alliance1.warState.atWarWith === allianceId2 || 
+           alliance2.warState.atWarWith === allianceId1;
+  }
+
+  arePlayersAtWar(playerId1, playerId2) {
+    const allianceId1 = this.playerAlliances.get(playerId1);
+    const allianceId2 = this.playerAlliances.get(playerId2);
+    return this.areAtWar(allianceId1, allianceId2);
+  }
+
+  declareWar(leaderId, targetAllianceId) {
+    const myAlliance = this.getPlayerAlliance(leaderId);
+    if (!myAlliance) {
+      return { success: false, message: '你不属于任何联盟' };
+    }
+
+    if (!myAlliance.isLeader(leaderId)) {
+      return { success: false, message: '只有盟主可以宣战' };
+    }
+
+    if (myAlliance.isAtWar()) {
+      return { success: false, message: '当前联盟已处于战争中，不能同时进行多场战争' };
+    }
+
+    const targetAlliance = this.getAlliance(targetAllianceId);
+    if (!targetAlliance) {
+      return { success: false, message: '目标联盟不存在' };
+    }
+
+    if (targetAlliance.isAtWar()) {
+      return { success: false, message: '目标联盟已处于战争中' };
+    }
+
+    if (targetAlliance.id === myAlliance.id) {
+      return { success: false, message: '不能向自己的联盟宣战' };
+    }
+
+    const leader = this.game.getPlayer(leaderId);
+    if (!leader || leader.base.storage.mineral < 100) {
+      return { success: false, message: '矿物不足，宣战需要100矿物' };
+    }
+
+    const voteId = myAlliance.createVote('declare_war', {
+      targetAllianceId,
+      targetAllianceName: targetAlliance.name
+    });
+
+    myAlliance.castVote(voteId, leaderId, true);
+
+    const result = myAlliance.getVoteResult(voteId);
+    if (result.passed && myAlliance.members.length === 1) {
+      this.executeWarDeclaration(myAlliance, targetAlliance, leaderId);
+      myAlliance.removeVote(voteId);
+      return { success: true, warStarted: true, voteId };
+    }
+
+    return { 
+      success: true, 
+      voteStarted: true, 
+      voteId,
+      message: '宣战投票已发起，需要2/3以上成员同意才能生效'
+    };
+  }
+
+  executeWarDeclaration(alliance1, alliance2, initiatorId) {
+    const initiator = this.game.getPlayer(initiatorId);
+    if (initiator) {
+      initiator.base.storage.mineral -= 100;
+    }
+
+    alliance1.startWar(alliance2.id, this.game.turn);
+    alliance2.startWar(alliance1.id, this.game.turn);
+
+    this.game.eventLog.push({
+      type: 'war_declared',
+      alliance1Id: alliance1.id,
+      alliance1Name: alliance1.name,
+      alliance2Id: alliance2.id,
+      alliance2Name: alliance2.name,
+      turn: this.game.turn,
+      message: `联盟「${alliance1.name}」向联盟「${alliance2.name}」宣战！双方进入交战状态`
+    });
+  }
+
+  castWarVote(playerId, voteId, support) {
+    const alliance = this.getPlayerAlliance(playerId);
+    if (!alliance) {
+      return { success: false, message: '你不属于任何联盟' };
+    }
+
+    const vote = alliance.getVote(voteId);
+    if (!vote) {
+      return { success: false, message: '投票不存在' };
+    }
+
+    if (vote.type !== 'declare_war' && vote.type !== 'end_war') {
+      return { success: false, message: '无效的投票类型' };
+    }
+
+    const result = alliance.castVote(voteId, playerId, support);
+    if (!result) {
+      return { success: false, message: '投票失败' };
+    }
+
+    const voteResult = alliance.getVoteResult(voteId);
+    
+    if (vote.type === 'declare_war') {
+      const allVoted = alliance.members.every(m => vote.votes.has(m));
+      if (voteResult.passed || allVoted) {
+        if (voteResult.passed) {
+          const targetAlliance = this.getAlliance(vote.data.targetAllianceId);
+          if (targetAlliance && !targetAlliance.isAtWar()) {
+            this.executeWarDeclaration(alliance, targetAlliance, alliance.leaderId);
+          }
+        }
+        alliance.removeVote(voteId);
+        return { success: true, voteClosed: true, passed: voteResult.passed };
+      }
+    }
+
+    return { 
+      success: true, 
+      voteCounted: true, 
+      currentResult: voteResult
+    };
+  }
+
+  proposeEndWar(leaderId) {
+    const myAlliance = this.getPlayerAlliance(leaderId);
+    if (!myAlliance) {
+      return { success: false, message: '你不属于任何联盟' };
+    }
+
+    if (!myAlliance.isLeader(leaderId)) {
+      return { success: false, message: '只有盟主可以发起停战投票' };
+    }
+
+    if (!myAlliance.isAtWar()) {
+      return { success: false, message: '当前联盟未处于战争中' };
+    }
+
+    const enemyAllianceId = myAlliance.getEnemyAllianceId();
+    const enemyAlliance = this.getAlliance(enemyAllianceId);
+
+    const myVoteId = myAlliance.createVote('end_war', {
+      enemyAllianceId,
+      enemyAllianceName: enemyAlliance?.name || 'Unknown'
+    });
+
+    const enemyVoteId = enemyAlliance?.createVote('end_war', {
+      enemyAllianceId: myAlliance.id,
+      enemyAllianceName: myAlliance.name
+    });
+
+    myAlliance.castVote(myVoteId, leaderId, true);
+
+    const myResult = myAlliance.getVoteResult(myVoteId);
+    
+    if (myResult.passed && myAlliance.members.length === 1) {
+      if (enemyAlliance && enemyAlliance.members.length === 1) {
+        this.executeEndWar(myAlliance, enemyAlliance);
+        myAlliance.removeVote(myVoteId);
+        if (enemyVoteId) enemyAlliance.removeVote(enemyVoteId);
+        return { success: true, warEnded: true };
+      }
+    }
+
+    return {
+      success: true,
+      voteStarted: true,
+      myVoteId,
+      enemyVoteId,
+      message: '停战投票已发起，需要双方联盟各自2/3以上成员同意才能生效'
+    };
+  }
+
+  castEndWarVote(playerId, voteId, support) {
+    const alliance = this.getPlayerAlliance(playerId);
+    if (!alliance) {
+      return { success: false, message: '你不属于任何联盟' };
+    }
+
+    const vote = alliance.getVote(voteId);
+    if (!vote || vote.type !== 'end_war') {
+      return { success: false, message: '投票不存在或类型错误' };
+    }
+
+    const result = alliance.castVote(voteId, playerId, support);
+    if (!result) {
+      return { success: false, message: '投票失败' };
+    }
+
+    const voteResult = alliance.getVoteResult(voteId);
+    const allVoted = alliance.members.every(m => vote.votes.has(m));
+
+    if (voteResult.passed || allVoted) {
+      if (voteResult.passed) {
+        const enemyAllianceId = vote.data.enemyAllianceId;
+        const enemyAlliance = this.getAlliance(enemyAllianceId);
+        
+        if (enemyAlliance) {
+          let enemyPassed = false;
+          for (const [enemyVoteId, enemyVote] of enemyAlliance.activeVotes) {
+            if (enemyVote.type === 'end_war' && 
+                enemyVote.data.enemyAllianceId === alliance.id) {
+              const enemyResult = enemyAlliance.getVoteResult(enemyVoteId);
+              const enemyAllVoted = enemyAlliance.members.every(m => enemyVote.votes.has(m));
+              if (enemyResult.passed || (enemyAllVoted && enemyResult.passed)) {
+                enemyPassed = true;
+                enemyAlliance.removeVote(enemyVoteId);
+                break;
+              }
+            }
+          }
+          
+          if (enemyPassed || enemyAlliance.members.every(m => {
+            for (const [evId, ev] of enemyAlliance.activeVotes) {
+              if (ev.type === 'end_war' && ev.data.enemyAllianceId === alliance.id) {
+                return ev.votes.has(m);
+              }
+            }
+            return false;
+          })) {
+            const enemyVoteExists = Array.from(enemyAlliance.activeVotes.values()).some(
+              ev => ev.type === 'end_war' && ev.data.enemyAllianceId === alliance.id
+            );
+            if (!enemyVoteExists) {
+              const enemyLeader = this.game.getPlayer(enemyAlliance.leaderId);
+              if (enemyLeader) {
+                const enemyVoteId = enemyAlliance.createVote('end_war', {
+                  enemyAllianceId: alliance.id,
+                  enemyAllianceName: alliance.name
+                });
+                enemyAlliance.castVote(enemyVoteId, enemyAlliance.leaderId, true);
+              }
+            }
+            
+            let bothPassed = false;
+            for (const [evId, ev] of enemyAlliance.activeVotes) {
+              if (ev.type === 'end_war' && ev.data.enemyAllianceId === alliance.id) {
+                const er = enemyAlliance.getVoteResult(evId);
+                if (er.passed) {
+                  bothPassed = true;
+                  enemyAlliance.removeVote(evId);
+                  break;
+                }
+              }
+            }
+            
+            if (bothPassed) {
+              this.executeEndWar(alliance, enemyAlliance);
+            }
+          }
+        }
+      }
+      alliance.removeVote(voteId);
+      return { success: true, voteClosed: true, passed: voteResult.passed };
+    }
+
+    return {
+      success: true,
+      voteCounted: true,
+      currentResult: voteResult
+    };
+  }
+
+  executeEndWar(alliance1, alliance2) {
+    alliance1.endWar();
+    alliance2.endWar();
+
+    this.game.eventLog.push({
+      type: 'war_ended',
+      alliance1Id: alliance1.id,
+      alliance1Name: alliance1.name,
+      alliance2Id: alliance2.id,
+      alliance2Name: alliance2.name,
+      turn: this.game.turn,
+      message: `联盟「${alliance1.name}」与联盟「${alliance2.name}」达成停战协议，战争结束`
+    });
+  }
+
+  shareTech(playerId, techId) {
+    const alliance = this.getPlayerAlliance(playerId);
+    if (!alliance) return false;
+
+    alliance.addSharedTech(techId, playerId);
+
+    for (const memberId of alliance.members) {
+      if (memberId !== playerId) {
+        const member = this.game.getPlayer(memberId);
+        if (member && !member.base.researched.has(techId)) {
+        }
+      }
+    }
+
+    return true;
+  }
+
+  updatePlayerEffectiveTechs(playerId) {
+    const player = this.game.getPlayer(playerId);
+    if (!player) return;
+
+    const alliance = this.getPlayerAlliance(playerId);
+    
+    player.base.effectiveTechs = new Set(player.base.researched);
+    player.base.techSources = {};
+
+    for (const techId of player.base.researched) {
+      player.base.techSources[techId] = {
+        type: 'self',
+        playerId
+      };
+    }
+
+    if (alliance) {
+      for (const [techId, contributorId] of alliance.sharedTechs) {
+        if (contributorId !== playerId && !player.base.researched.has(techId)) {
+          player.base.effectiveTechs.add(techId);
+          player.base.techSources[techId] = {
+            type: 'shared',
+            playerId: contributorId
+          };
+        }
+      }
+    }
+  }
+
+  updateAllAllianceMembersTechs(allianceId) {
+    const alliance = this.getAlliance(allianceId);
+    if (!alliance) return;
+
+    for (const memberId of alliance.members) {
+      this.updatePlayerEffectiveTechs(memberId);
+    }
+  }
+
+  onResearchComplete(playerId, techId) {
+    const alliance = this.getPlayerAlliance(playerId);
+    if (alliance) {
+      this.shareTech(playerId, techId);
+      this.updateAllAllianceMembersTechs(alliance.id);
+    } else {
+      this.updatePlayerEffectiveTechs(playerId);
+    }
+  }
+
+  onMemberJoined(allianceId, playerId) {
+    const alliance = this.getAlliance(allianceId);
+    if (!alliance) return;
+
+    const player = this.game.getPlayer(playerId);
+    if (player) {
+      for (const techId of player.base.researched) {
+        alliance.addSharedTech(techId, playerId);
+      }
+    }
+
+    this.updateAllAllianceMembersTechs(allianceId);
+  }
+
+  onMemberLeft(allianceId, playerId) {
+    const alliance = this.getAlliance(allianceId);
+    if (!alliance) return;
+
+    const removedTechs = alliance.removeSharedTechsByContributor(playerId);
+    this.updateAllAllianceMembersTechs(allianceId);
+
+    this.updatePlayerEffectiveTechs(playerId);
+
+    return removedTechs;
+  }
+
+  dissolveAlliance(allianceId, reason = 'disbanded') {
+    const alliance = this.alliances.get(allianceId);
+    if (!alliance) return false;
+
+    if (alliance.isAtWar()) {
+      const enemyId = alliance.getEnemyAllianceId();
+      const enemy = this.getAlliance(enemyId);
+      if (enemy) {
+        enemy.endWar();
+      }
+    }
+
+    for (const memberId of alliance.members) {
+      this.playerAlliances.delete(memberId);
+      this.updatePlayerEffectiveTechs(memberId);
+    }
+
+    this.usedColors.delete(alliance.color);
+    this.alliances.delete(allianceId);
+
+    const leader = this.game.getPlayer(alliance.leaderId);
+    this.game.eventLog.push({
+      type: 'alliance_dissolved',
+      allianceId: allianceId,
+      allianceName: alliance.name,
+      reason: reason,
+      turn: this.game.turn,
+      message: `联盟「${alliance.name}」已解散`
+    });
+
+    return true;
   }
 }
 

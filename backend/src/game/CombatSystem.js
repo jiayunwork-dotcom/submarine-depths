@@ -17,8 +17,12 @@ class CombatSystem {
     return Math.min(0.95, baseChance);
   }
 
-  static calculateDamage(baseDamage, targetTile, targetHull) {
+  static calculateDamage(baseDamage, targetTile, targetHull, atWarBonus = false) {
     let damage = baseDamage;
+    
+    if (atWarBonus) {
+      damage *= 1.3;
+    }
     
     const terrain = CONFIG.TERRAIN_TYPES[targetTile.terrain];
     if (terrain && terrain.cover) {
@@ -28,7 +32,7 @@ class CombatSystem {
     return Math.floor(damage);
   }
 
-  static fireTorpedo(attacker, target, map) {
+  static fireTorpedo(attacker, target, map, atWarBonus = false) {
     const results = [];
     
     if (attacker.torpedoes <= 0) {
@@ -48,7 +52,7 @@ class CombatSystem {
     
     if (hit) {
       const targetTile = map.getTile(target.q, target.r);
-      const damage = this.calculateDamage(attacker.torpedoDamage, targetTile);
+      const damage = this.calculateDamage(attacker.torpedoDamage, targetTile, null, atWarBonus);
       target.damage(damage);
       
       results.push({
@@ -57,7 +61,8 @@ class CombatSystem {
         target: target.id,
         damage,
         distance,
-        targetDestroyed: target.status === 'sunk'
+        targetDestroyed: target.status === 'sunk',
+        atWarBonus
       });
     } else {
       results.push({
@@ -104,7 +109,9 @@ class CombatSystem {
             continue;
           }
           
-          const result = this.fireTorpedo(sub, target, map);
+          const atWar = allianceManager && allianceManager.arePlayersAtWar(player.id, targetPlayer.id);
+          
+          const result = this.fireTorpedo(sub, target, map, atWar);
           if (result.results) {
             for (const event of result.results) {
               event.attackerPlayerId = player.id;
