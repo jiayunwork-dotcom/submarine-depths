@@ -307,30 +307,6 @@ class AllianceManager {
     return { success: true, alliance };
   }
 
-  dissolveAlliance(allianceId, reason = 'disbanded') {
-    const alliance = this.alliances.get(allianceId);
-    if (!alliance) return false;
-
-    for (const memberId of alliance.members) {
-      this.playerAlliances.delete(memberId);
-    }
-
-    this.usedColors.delete(alliance.color);
-    this.alliances.delete(allianceId);
-
-    const leader = this.game.getPlayer(alliance.leaderId);
-    this.game.eventLog.push({
-      type: 'alliance_dissolved',
-      allianceId: allianceId,
-      allianceName: alliance.name,
-      reason: reason,
-      turn: this.game.turn,
-      message: `联盟「${alliance.name}」已解散`
-    });
-
-    return true;
-  }
-
   applyToAlliance(playerId, allianceId) {
     if (this.playerAlliances.has(playerId)) {
       return { success: false, message: '你已经属于一个联盟了' };
@@ -957,6 +933,12 @@ class AllianceManager {
             playerId: contributorId
           };
         }
+      }
+    }
+
+    for (const sub of player.submarines) {
+      if (sub.applyTechEffects) {
+        sub.applyTechEffects(player.base.effectiveTechs);
       }
     }
   }

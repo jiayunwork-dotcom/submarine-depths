@@ -32,7 +32,7 @@ class CombatSystem {
     return Math.floor(damage);
   }
 
-  static fireTorpedo(attacker, target, map, atWarBonus = false) {
+  static fireTorpedo(attacker, target, map, atWarBonus = false, attackerTech = null) {
     const results = [];
     
     if (attacker.torpedoes <= 0) {
@@ -47,7 +47,7 @@ class CombatSystem {
       return { hit: false, message: 'Target out of range' };
     }
     
-    const hitChance = this.calculateHitChance(distance, null);
+    const hitChance = this.calculateHitChance(distance, attackerTech);
     const hit = Math.random() < hitChance;
     
     if (hit) {
@@ -110,8 +110,9 @@ class CombatSystem {
           }
           
           const atWar = allianceManager && allianceManager.arePlayersAtWar(player.id, targetPlayer.id);
+          const attackerTech = player.base.effectiveTechs;
           
-          const result = this.fireTorpedo(sub, target, map, atWar);
+          const result = this.fireTorpedo(sub, target, map, atWar, attackerTech);
           if (result.results) {
             for (const event of result.results) {
               event.attackerPlayerId = player.id;

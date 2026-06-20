@@ -96,8 +96,8 @@ class Base {
   canResearch(techId) {
     const tech = CONFIG.RESEARCH_TECHS[techId];
     if (!tech) return false;
-    if (this.researched.has(techId)) return false;
-    if (tech.prerequisite && !this.researched.has(tech.prerequisite)) return false;
+    if (this.effectiveTechs.has(techId)) return false;
+    if (tech.prerequisite && !this.effectiveTechs.has(tech.prerequisite)) return false;
     if (this.techPoints < tech.cost) return false;
     return true;
   }
@@ -137,7 +137,8 @@ class Base {
   getSonarRange() {
     const baseRange = 3;
     const arrayBonus = (this.modules.SONAR_ARRAY || 0) * 5;
-    return baseRange + arrayBonus;
+    const techBonus = this.effectiveTechs.has('ADVANCED_SONAR') ? 2 : 0;
+    return baseRange + arrayBonus + techBonus;
   }
 
   getMaxSubmarines() {
