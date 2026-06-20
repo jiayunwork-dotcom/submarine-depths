@@ -365,6 +365,12 @@ class AllianceManager {
     this.playerAlliances.set(applicantId, allianceId);
     alliance.lastMemberJoinedTurn = this.game.turn;
 
+    for (const techId of applicant.base.researched) {
+      alliance.addSharedTech(techId, applicantId);
+    }
+
+    this.updateAllAllianceMembersTechs(allianceId);
+
     this.game.eventLog.push({
       type: 'alliance_member_joined',
       allianceId: allianceId,
@@ -419,6 +425,10 @@ class AllianceManager {
 
     this.playerAlliances.delete(playerId);
 
+    alliance.removeSharedTechsByContributor(playerId);
+    this.updateAllAllianceMembersTechs(allianceId);
+    this.updatePlayerEffectiveTechs(playerId);
+
     this.game.eventLog.push({
       type: 'alliance_member_left',
       allianceId: allianceId,
@@ -458,6 +468,10 @@ class AllianceManager {
     }
 
     this.playerAlliances.delete(memberId);
+
+    alliance.removeSharedTechsByContributor(memberId);
+    this.updateAllAllianceMembersTechs(allianceId);
+    this.updatePlayerEffectiveTechs(memberId);
 
     this.game.eventLog.push({
       type: 'alliance_member_kicked',
@@ -654,13 +668,19 @@ class AllianceManager {
 
     const voteId = myAlliance.createVote('declare_war', {
       targetAllianceId,
-      targetAllianceName: targetAlliance.name
+      targetAllianceName: targetAlliance.name,
+      initiatorId: leaderId
     });
 
     myAlliance.castVote(voteId, leaderId, true);
 
     const result = myAlliance.getVoteResult(voteId);
     if (result.passed && myAlliance.members.length === 1) {
+      const canAfford = leader.base.storage.mineral >= 100;
+      if (!canAfford) {
+        myAlliance.removeVote(voteId);
+        return { success: false, message: '矿物不足，宣战需要100矿物' };
+      }
       this.executeWarDeclaration(myAlliance, targetAlliance, leaderId);
       myAlliance.removeVote(voteId);
       return { success: true, warStarted: true, voteId };
@@ -677,6 +697,18 @@ class AllianceManager {
   executeWarDeclaration(alliance1, alliance2, initiatorId) {
     const initiator = this.game.getPlayer(initiatorId);
     if (initiator) {
+      if (initiator.base.storage.mineral < 100) {
+        this.game.eventLog.push({
+          type: 'war_declaration_failed',
+          alliance1Id: alliance1.id,
+          alliance1Name: alliance1.name,
+          alliance2Id: alliance2.id,
+          alliance2Name: alliance2.name,
+          turn: this.game.turn,
+          message: `联盟「${alliance1.name}」向联盟「${alliance2.name}」宣战失败：矿物不足`
+        });
+        return false;
+      }
       initiator.base.storage.mineral -= 100;
     }
 
@@ -692,6 +724,8 @@ class AllianceManager {
       turn: this.game.turn,
       message: `联盟「${alliance1.name}」向联盟「${alliance2.name}」宣战！双方进入交战状态`
     });
+
+    return true;
   }
 
   castWarVote(playerId, voteId, support) {
@@ -719,14 +753,16 @@ class AllianceManager {
     if (vote.type === 'declare_war') {
       const allVoted = alliance.members.every(m => vote.votes.has(m));
       if (voteResult.passed || allVoted) {
+        let warStarted = false;
         if (voteResult.passed) {
           const targetAlliance = this.getAlliance(vote.data.targetAllianceId);
-          if (targetAlliance && !targetAlliance.isAtWar()) {
-            this.executeWarDeclaration(alliance, targetAlliance, alliance.leaderId);
+          const initiatorId = vote.data.initiatorId || alliance.leaderId;
+          if (targetAlliance && !targetAlliance.isAtWar() && !alliance.isAtWar()) {
+            warStarted = this.executeWarDeclaration(alliance, targetAlliance, initiatorId);
           }
         }
         alliance.removeVote(voteId);
-        return { success: true, voteClosed: true, passed: voteResult.passed };
+        return { success: true, voteClosed: true, passed: voteResult.passed, warStarted };
       }
     }
 

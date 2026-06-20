@@ -967,7 +967,6 @@ class Game {
     if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
     const result = this.allianceManager.acceptApplication(leaderId, allianceId, applicantId);
     if (result.success) {
-      this.allianceManager.onMemberJoined(allianceId, applicantId);
       for (const p of this.players) {
         this.updateVisibility(p);
       }
@@ -985,7 +984,6 @@ class Game {
     const allianceId = this.allianceManager.playerAlliances.get(playerId);
     const result = this.allianceManager.leaveAlliance(playerId);
     if (result.success && allianceId) {
-      this.allianceManager.onMemberLeft(allianceId, playerId);
       for (const p of this.players) {
         this.updateVisibility(p);
       }
@@ -997,7 +995,6 @@ class Game {
     if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
     const result = this.allianceManager.kickMember(leaderId, allianceId, memberId);
     if (result.success) {
-      this.allianceManager.onMemberLeft(allianceId, memberId);
       for (const p of this.players) {
         this.updateVisibility(p);
       }
