@@ -1,0 +1,274 @@
+.sidebar {
+  width: 300px;
+  background: rgba(10, 25, 41, 0.95);
+  border-left: 1px solid rgba(100, 181, 246, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-title {
+  font-size: 14px;
+  color: #90caf9;
+  margin-bottom: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.submarine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.submarine-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.submarine-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.submarine-item.selected {
+  background: rgba(100, 181, 246, 0.15);
+  border-color: rgba(100, 181, 246, 0.5);
+}
+
+.sub-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.sub-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sub-name {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.sub-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+}
+
+.stat-label {
+  width: 24px;
+  color: #78909c;
+}
+
+.bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.bar-fill.hull {
+  background: linear-gradient(90deg, #4caf50, #81c784);
+}
+
+.bar-fill.energy {
+  background: linear-gradient(90deg, #2196f3, #64b5f6);
+}
+
+.stat-value {
+  width: 45px;
+  text-align: right;
+  color: #b0bec5;
+  font-size: 10px;
+}
+
+.sub-status {
+  flex-shrink: 0;
+}
+
+.status {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.status.sunk {
+  background: rgba(244, 67, 54, 0.2);
+  color: #ef9a9a;
+}
+
+.status.adrift {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ffb74d;
+}
+
+.status.idle {
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+}
+
+.sub-detail {
+  font-size: 13px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.detail-label {
+  color: #78909c;
+}
+
+.detail-value {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.sonar-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.sonar-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #b0bec5;
+  transition: all 0.2s;
+}
+
+.sonar-btn.active {
+  background: #1976d2;
+  color: white;
+}
+
+.cargo-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cargo-title {
+  font-size: 12px;
+  color: #90a4ae;
+  margin-bottom: 8px;
+}
+
+.cargo-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cargo-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #b0bec5;
+}
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.player-item.self {
+  background: rgba(100, 181, 246, 0.1);
+}
+
+.player-item.defeated {
+  opacity: 0.5;
+}
+
+.player-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.player-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.player-name {
+  font-size: 12px;
+}
+
+.player-score {
+  font-size: 11px;
+  color: #90a4ae;
+}
+
+.connection-status {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.connection-status.disconnected {
+  background: rgba(244, 67, 54, 0.2);
+  color: #ef9a9a;
+}
+
+.defeated-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(158, 158, 158, 0.2);
+  color: #bdbdbd;
+  border-radius: 4px;
+}

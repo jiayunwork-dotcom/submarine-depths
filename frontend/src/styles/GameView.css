@@ -1,0 +1,130 @@
+.game-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.map-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.game-loading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #90a4ae;
+  font-size: 18px;
+}
+
+.game-over {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.game-over h2 {
+  font-size: 48px;
+  color: #64b5f6;
+  margin-bottom: 30px;
+}
+
+.winner-info {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.winner h3 {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.winner.you-win h3 {
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.winner.other-win h3 {
+  color: #90a4ae;
+}
+
+.winner p {
+  font-size: 18px;
+  color: #b0bec5;
+}
+
+.final-scores {
+  background: rgba(10, 25, 41, 0.8);
+  border-radius: 16px;
+  border: 1px solid rgba(100, 181, 246, 0.3);
+  padding: 30px;
+  min-width: 400px;
+  margin-bottom: 40px;
+}
+
+.final-scores h4 {
+  font-size: 18px;
+  color: #90caf9;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.score-row:last-child {
+  border-bottom: none;
+}
+
+.rank {
+  width: 30px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.name {
+  flex: 1;
+  font-size: 16px;
+}
+
+.score {
+  font-size: 18px;
+  font-weight: bold;
+  color: #64b5f6;
+}
+
+.exit-btn {
+  padding: 14px 40px;
+  font-size: 16px;
+  background: linear-gradient(135deg, #1976d2, #2196f3);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.exit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+}
