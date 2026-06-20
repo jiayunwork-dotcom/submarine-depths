@@ -103,6 +103,20 @@ class CombatSystem {
           if (allianceManager && allianceManager.areAllied(player.id, targetPlayer.id)) {
             continue;
           }
+
+          if (allianceManager) {
+            let inAllyBaseZone = false;
+            for (const p of players) {
+              if (p.id === player.id) continue;
+              if (!allianceManager.areAllied(player.id, p.id)) continue;
+              const dist = this.hexDistance(target.q, target.r, p.base.q, p.base.r);
+              if (dist <= 3) {
+                inAllyBaseZone = true;
+                break;
+              }
+            }
+            if (inAllyBaseZone) continue;
+          }
           
           const result = this.fireTorpedo(sub, target, map);
           if (result.results) {

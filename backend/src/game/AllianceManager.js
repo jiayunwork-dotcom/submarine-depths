@@ -292,7 +292,11 @@ class AllianceManager {
 
     const player = this.game.getPlayer(playerId);
     const wasLeader = alliance.isLeader(playerId);
-    const memberCount = alliance.getMemberCount();
+
+    if (wasLeader) {
+      this.dissolveAlliance(allianceId, 'leader_left');
+      return { success: true };
+    }
 
     const result = alliance.removeMember(playerId);
     if (!result) {
@@ -307,25 +311,10 @@ class AllianceManager {
       allianceName: alliance.name,
       playerId: playerId,
       playerName: player ? player.name : 'Unknown',
-      wasLeader: wasLeader,
+      wasLeader: false,
       turn: this.game.turn,
       message: `${player ? player.name : 'Unknown'} 退出了联盟「${alliance.name}」`
     });
-
-    if (alliance.getMemberCount() === 0) {
-      this.dissolveAlliance(allianceId, 'all_members_left');
-    } else if (wasLeader && memberCount > 1) {
-      const newLeader = this.game.getPlayer(alliance.leaderId);
-      this.game.eventLog.push({
-        type: 'alliance_leader_changed',
-        allianceId: allianceId,
-        allianceName: alliance.name,
-        newLeaderId: alliance.leaderId,
-        newLeaderName: newLeader ? newLeader.name : 'Unknown',
-        turn: this.game.turn,
-        message: `${newLeader ? newLeader.name : 'Unknown'} 成为了联盟「${alliance.name}」的新盟主`
-      });
-    }
 
     return { success: true };
   }

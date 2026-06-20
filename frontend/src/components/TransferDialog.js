@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
+import { hexDistance } from '../game/gameConfig';
 import '../styles/AlliancePanel.css';
 
 function TransferDialog() {
@@ -45,11 +46,16 @@ function TransferDialog() {
     setBioSampleAmount(0);
   };
 
-  const hasTransport = currentPlayer.submarines?.some(s => 
+  const transportSub = currentPlayer.submarines?.find(s => 
     s.type === 'TRANSPORT' && s.status !== 'sunk' && s.status !== 'adrift'
   );
 
-  const canTransfer = hasTransport && (mineralAmount > 0 || bioSampleAmount > 0);
+  const hasTransport = !!transportSub;
+
+  const isTransportNearAllyBase = hasTransport && targetPlayer.base && 
+    hexDistance(transportSub.q, transportSub.r, targetPlayer.base.q, targetPlayer.base.r) <= 1;
+
+  const canTransfer = hasTransport && isTransportNearAllyBase && (mineralAmount > 0 || bioSampleAmount > 0);
 
   return (
     <div className="transfer-dialog">
@@ -58,6 +64,12 @@ function TransferDialog() {
       {!hasTransport && (
         <div style={{ color: '#e74c3c', marginBottom: '12px', fontSize: '13px' }}>
           ⚠️ 需要运输艇才能传输资源
+        </div>
+      )}
+
+      {hasTransport && !isTransportNearAllyBase && (
+        <div style={{ color: '#e74c3c', marginBottom: '12px', fontSize: '13px' }}>
+          ⚠️ 运输艇需到达盟友基地1格范围内才能交接
         </div>
       )}
 
