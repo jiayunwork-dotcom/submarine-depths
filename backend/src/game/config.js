@@ -7,6 +7,13 @@ const CONFIG = {
   MAX_PLAYERS: 6,
   CURRENT_CHANGE_INTERVAL: 5,
 
+  RUIN_EXCAVATION_TURNS: 3,
+  RUIN_TECH_PER_TURN: 3,
+  RUIN_SCORE_PER_RUIN: 10,
+
+  SCORE_MINERAL_PER_UNIT: 0.1,
+  SCORE_BIO_SAMPLE_PER_UNIT: 0.2,
+
   DEPTH_LEVELS: {
     SHALLOW: { name: '浅海', min: 0, max: 200, pressure: 1 },
     MID: { name: '中层', min: 200, max: 1000, pressure: 2 },

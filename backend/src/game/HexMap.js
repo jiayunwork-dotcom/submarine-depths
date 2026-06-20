@@ -51,7 +51,8 @@ class HexMap {
       visible: new Set(),
       resources: 0,
       owner: null,
-      controlPoints: 0
+      controlPoints: 0,
+      ruin: null
     };
   }
 
@@ -99,6 +100,13 @@ class HexMap {
       if (tile.depthLevel === 'DEEP' || tile.depthLevel === 'ABYSS') {
         tile.terrain = 'RUIN';
         tile.controlPoints = 100;
+        tile.ruin = {
+          status: 'idle',
+          ownerId: null,
+          excavatorId: null,
+          excavatorPlayerId: null,
+          progress: 0
+        };
       }
     }
 
@@ -207,7 +215,7 @@ class HexMap {
     const publicTiles = {};
     for (const [key, tile] of this.tiles) {
       if (tile.explored.has(playerId) || tile.visible.has(playerId)) {
-        publicTiles[key] = {
+        const publicTile = {
           q: tile.q,
           r: tile.r,
           depth: tile.depth,
@@ -219,6 +227,15 @@ class HexMap {
           owner: tile.owner,
           controlPoints: tile.controlPoints
         };
+        if (tile.ruin) {
+          publicTile.ruin = {
+            status: tile.ruin.status,
+            ownerId: tile.ruin.ownerId,
+            excavatorPlayerId: tile.ruin.excavatorPlayerId,
+            progress: tile.ruin.progress
+          };
+        }
+        publicTiles[key] = publicTile;
       }
     }
     return publicTiles;

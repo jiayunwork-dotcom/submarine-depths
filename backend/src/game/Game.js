@@ -17,6 +17,8 @@ class Game {
     this.eventLog = [];
     this.winner = null;
     this.isFinished = false;
+    this.ruins = [];
+    this.scoreRankings = [];
     
     this.planningTimer = CONFIG.PLANNING_TIME;
     this.currentDirection = 0;
@@ -39,7 +41,15 @@ class Game {
       this.map.getTile(pos.q, pos.r).owner = player.id;
       this.updateVisibility(player);
     }
+
+    this.ruins = [];
+    for (const [key, tile] of this.map.tiles) {
+      if (tile.terrain === 'RUIN' && tile.ruin) {
+        this.ruins.push({ q: tile.q, r: tile.r });
+      }
+    }
     
+    this.updateScoreRankings();
     this.phase = 'planning';
   }
 
@@ -133,7 +143,10 @@ class Game {
     this.processSubmarineMovements();
     this.processResourceGathering();
     this.processBaseProduction();
+    this.processRuinExcavation();
     this.processCombat();
+    this.processRuinExcavationInterrupt();
+    this.processRuinProduction();
     this.processPressureDamage();
     this.processRandomEvents();
     
@@ -150,6 +163,8 @@ class Game {
       this.updateVisibility(player);
       player.calculateScore(this.map);
     }
+
+    this.updateScoreRankings();
   }
 
   getMovementCost(fromQ, fromR, toQ, toR) {
@@ -404,6 +419,229 @@ class Game {
     }
   }
 
+  processRuinExcavation() {
+    const excavationCandidates = [];
+
+    for (const player of this.players) {
+      if (player.isDefeated) continue;
+      for (const sub of player.submarines) {
+        if (sub.status === 'sunk' || sub.status === 'adrift') continue;
+        if (sub.type !== 'SCIENCE') continue;
+
+        const tile = this.map.getTile(sub.q, sub.r);
+        if (!tile || tile.terrain !== 'RUIN' || !tile.ruin) continue;
+
+        excavationCandidates.push({ sub, player, tile, order: excavationCandidates.length });
+      }
+    }
+
+    for (const { sub, player, tile } of excavationCandidates) {
+      const ruin = tile.ruin;
+
+      if (ruin.status === 'excavating' && ruin.excavatorId === sub.id) {
+        if (ruin.excavatorPlayerId !== player.id) continue;
+        ruin.progress += 1;
+        if (ruin.progress >= CONFIG.RUIN_EXCAVATION_TURNS) {
+          ruin.status = 'captured';
+          ruin.ownerId = player.id;
+          ruin.excavatorId = null;
+          ruin.excavatorPlayerId = null;
+          ruin.progress = 0;
+          tile.owner = player.id;
+          this.eventLog.push({
+            type: 'ruin_captured',
+            player: player.id,
+            q: tile.q,
+            r: tile.r,
+            turn: this.turn,
+            message: `${player.name} 成功占领了深海遗迹 (${tile.q}, ${tile.r})！`
+          });
+        } else {
+          this.eventLog.push({
+            type: 'ruin_excavating',
+            player: player.id,
+            q: tile.q,
+            r: tile.r,
+            progress: ruin.progress,
+            turn: this.turn,
+            message: `${player.name} 正在发掘遗迹 (${tile.q}, ${tile.r})：${ruin.progress}/${CONFIG.RUIN_EXCAVATION_TURNS}`
+          });
+        }
+        continue;
+      }
+
+      if (ruin.status === 'idle' || (ruin.status === 'captured' && ruin.ownerId !== player.id)) {
+        if (ruin.status === 'excavating') continue;
+
+        const existingExcavator = excavationCandidates.find(
+          c => c.tile === tile && c.sub !== sub && c.player !== player
+        );
+        if (existingExcavator && existingExcavator.order < excavationCandidates.findIndex(c => c.sub === sub)) {
+          continue;
+        }
+
+        ruin.status = 'excavating';
+        ruin.excavatorId = sub.id;
+        ruin.excavatorPlayerId = player.id;
+        ruin.progress = 1;
+        if (ruin.ownerId && ruin.ownerId !== player.id) {
+          ruin.ownerId = null;
+          tile.owner = null;
+        }
+        this.eventLog.push({
+          type: 'ruin_excavation_start',
+          player: player.id,
+          q: tile.q,
+          r: tile.r,
+          turn: this.turn,
+          message: `${player.name} 开始发掘遗迹 (${tile.q}, ${tile.r})`
+        });
+      }
+    }
+  }
+
+  processRuinExcavationInterrupt() {
+    const sunkSubIds = new Set();
+    for (const event of this.combatLog) {
+      if (event.type === 'torpedo_hit' && event.targetDestroyed) {
+        sunkSubIds.add(event.target);
+      }
+    }
+
+    for (const ruinInfo of this.ruins) {
+      const tile = this.map.getTile(ruinInfo.q, ruinInfo.r);
+      if (!tile || !tile.ruin) continue;
+      const ruin = tile.ruin;
+
+      if (ruin.status === 'excavating' && ruin.excavatorId) {
+        if (sunkSubIds.has(ruin.excavatorId)) {
+          this.eventLog.push({
+            type: 'ruin_excavation_interrupted',
+            player: ruin.excavatorPlayerId,
+            q: tile.q,
+            r: tile.r,
+            turn: this.turn,
+            message: `遗迹 (${tile.q}, ${tile.r}) 的发掘因科考艇被击毁而中断！`
+          });
+          ruin.status = ruin.ownerId ? 'captured' : 'idle';
+          ruin.excavatorId = null;
+          ruin.excavatorPlayerId = null;
+          ruin.progress = 0;
+          continue;
+        }
+
+        const excavatorPlayer = this.getPlayer(ruin.excavatorPlayerId);
+        let excavatorStillThere = false;
+        if (excavatorPlayer) {
+          const sub = excavatorPlayer.getSubmarine(ruin.excavatorId);
+          if (sub && sub.status !== 'sunk' && sub.status !== 'adrift' && sub.q === tile.q && sub.r === tile.r) {
+            excavatorStillThere = true;
+          }
+        }
+        if (!excavatorStillThere) {
+          this.eventLog.push({
+            type: 'ruin_excavation_interrupted',
+            player: ruin.excavatorPlayerId,
+            q: tile.q,
+            r: tile.r,
+            turn: this.turn,
+            message: `遗迹 (${tile.q}, ${tile.r}) 的发掘因科考艇离开而中断`
+          });
+          ruin.status = ruin.ownerId ? 'captured' : 'idle';
+          ruin.excavatorId = null;
+          ruin.excavatorPlayerId = null;
+          ruin.progress = 0;
+        }
+      }
+    }
+  }
+
+  processRuinProduction() {
+    for (const ruinInfo of this.ruins) {
+      const tile = this.map.getTile(ruinInfo.q, ruinInfo.r);
+      if (!tile || !tile.ruin) continue;
+      const ruin = tile.ruin;
+
+      if (ruin.status === 'captured' && ruin.ownerId) {
+        const player = this.getPlayer(ruin.ownerId);
+        if (player && !player.isDefeated) {
+          player.base.techPoints += CONFIG.RUIN_TECH_PER_TURN;
+          this.eventLog.push({
+            type: 'ruin_tech_production',
+            player: player.id,
+            q: tile.q,
+            r: tile.r,
+            techPoints: CONFIG.RUIN_TECH_PER_TURN,
+            turn: this.turn,
+            message: `${player.name} 从遗迹 (${tile.q}, ${tile.r}) 获得 ${CONFIG.RUIN_TECH_PER_TURN} 科技点`
+          });
+        }
+      }
+    }
+  }
+
+  calculatePlayerTechScore(player) {
+    return player.base.techPoints;
+  }
+
+  calculatePlayerResourceScore(player) {
+    const mineralScore = Math.floor(player.base.storage.mineral / 10);
+    const bioScore = Math.floor(player.base.storage.bio_sample / 5);
+    return mineralScore + bioScore;
+  }
+
+  calculatePlayerRuinScore(player) {
+    let count = 0;
+    for (const ruinInfo of this.ruins) {
+      const tile = this.map.getTile(ruinInfo.q, ruinInfo.r);
+      if (tile && tile.ruin && tile.ruin.status === 'captured' && tile.ruin.ownerId === player.id) {
+        count++;
+      }
+    }
+    return count * CONFIG.RUIN_SCORE_PER_RUIN;
+  }
+
+  updateScoreRankings() {
+    const rankings = this.players.map(player => {
+      const techScore = this.calculatePlayerTechScore(player);
+      const resourceScore = this.calculatePlayerResourceScore(player);
+      const ruinScore = this.calculatePlayerRuinScore(player);
+      const totalScore = techScore + resourceScore + ruinScore;
+
+      return {
+        playerId: player.id,
+        name: player.name,
+        color: player.color,
+        techScore,
+        resourceScore,
+        ruinScore,
+        totalScore,
+        isDefeated: player.isDefeated,
+        baseQ: player.base.q,
+        baseR: player.base.r
+      };
+    });
+
+    rankings.sort((a, b) => b.totalScore - a.totalScore);
+    this.scoreRankings = rankings;
+  }
+
+  getAllRuinsState() {
+    return this.ruins.map(ruinInfo => {
+      const tile = this.map.getTile(ruinInfo.q, ruinInfo.r);
+      if (!tile || !tile.ruin) return null;
+      return {
+        q: tile.q,
+        r: tile.r,
+        status: tile.ruin.status,
+        ownerId: tile.ruin.ownerId,
+        excavatorPlayerId: tile.ruin.excavatorPlayerId,
+        progress: tile.ruin.progress,
+        maxProgress: CONFIG.RUIN_EXCAVATION_TURNS
+      };
+    }).filter(Boolean);
+  }
+
   endTurn() {
     this.turn++;
     
@@ -619,7 +857,9 @@ class Game {
       eventLog: this.eventLog,
       winner: this.winner ? this.winner.id : null,
       isFinished: this.isFinished,
-      currentDirection: this.map ? this.map.currentDirection : null
+      currentDirection: this.map ? this.map.currentDirection : null,
+      ruins: this.getAllRuinsState(),
+      scoreRankings: this.scoreRankings
     };
   }
 }

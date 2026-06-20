@@ -45,6 +45,16 @@ function HexMap() {
   }, [gameState?.currentPlayer?.id]);
 
   useEffect(() => {
+    const handlePanToBase = (e) => {
+      const { q, r } = e.detail;
+      const { x, y } = hexToPixel(q, r);
+      setOffset({ x: canvasSize.width / 2 - x, y: canvasSize.height / 2 - y });
+    };
+    window.addEventListener('panToBase', handlePanToBase);
+    return () => window.removeEventListener('panToBase', handlePanToBase);
+  }, [canvasSize]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -175,6 +185,10 @@ function HexMap() {
       ctx.fillText('★' + tile.controlPoints, x, y + 12);
     }
     
+    if (tile.terrain === 'RUIN' && tile.ruin && tile.visible) {
+      drawRuinState(ctx, tile, x, y);
+    }
+    
     if (tile.owner && tile.terrain === 'RUIN') {
       const owner = gameState.players.find(p => p.id === tile.owner);
       if (owner) {
@@ -183,6 +197,56 @@ function HexMap() {
         ctx.fillStyle = owner.color;
         ctx.fill();
       }
+    }
+  };
+
+  const drawRuinState = (ctx, tile, x, y) => {
+    const ruin = tile.ruin;
+    const ruinPlayer = ruin.ownerId || ruin.excavatorPlayerId;
+    const owner = ruinPlayer ? gameState.players.find(p => p.id === ruinPlayer) : null;
+    const color = owner ? owner.color : '#888';
+
+    if (ruin.status === 'captured') {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, HEX_SIZE * 0.75, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x, y, HEX_SIZE * 0.68, 0, Math.PI * 2);
+      ctx.strokeStyle = color + '80';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else if (ruin.status === 'excavating') {
+      const progress = ruin.progress || 0;
+      const maxProgress = gameState.ruins?.find(r => r.q === tile.q && r.r === tile.r)?.maxProgress || 3;
+      const percent = progress / maxProgress;
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.beginPath();
+      ctx.arc(x, y, HEX_SIZE * 0.75, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, HEX_SIZE * 0.75, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * percent);
+      ctx.stroke();
+
+      ctx.font = 'bold 9px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(`${progress}/${maxProgress}`, x, y + HEX_SIZE * 0.55);
+    } else {
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.arc(x, y, HEX_SIZE * 0.75, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
   };
 
@@ -683,6 +747,24 @@ function HexMap() {
           {gameState.map[`${hoveredHex.q},${hoveredHex.r}`]?.resources > 0 && (
             <div>资源: {gameState.map[`${hoveredHex.q},${hoveredHex.r}`].resources}</div>
           )}
+          {gameState.map[`${hoveredHex.q},${hoveredHex.r}`]?.ruin && (() => {
+            const ruin = gameState.map[`${hoveredHex.q},${hoveredHex.r}`].ruin;
+            const statusText = { idle: '空闲', excavating: '发掘中', captured: '已占领' }[ruin.status] || ruin.status;
+            const ownerName = ruin.ownerId ? gameState.players.find(p => p.id === ruin.ownerId)?.name : null;
+            const excavatorName = ruin.excavatorPlayerId ? gameState.players.find(p => p.id === ruin.excavatorPlayerId)?.name : null;
+            const maxProg = gameState.ruins?.find(r => r.q === hoveredHex.q && r.r === hoveredHex.r)?.maxProgress || 3;
+            return (
+              <>
+                <div className="ruin-tooltip">
+                  <div>遗迹状态: {statusText}</div>
+                  {ownerName && <div>归属: {ownerName}</div>}
+                  {ruin.status === 'excavating' && excavatorName && (
+                    <div>发掘者: {excavatorName} ({ruin.progress}/{maxProg})</div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
           {gameState.currentDirection && (
             <div className="current-info">
               洋流: → {getCurrentDirectionName(gameState.currentDirection)}

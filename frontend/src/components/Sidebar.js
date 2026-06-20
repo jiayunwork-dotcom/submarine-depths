@@ -168,6 +168,61 @@ function Sidebar() {
       </div>
 
       <div className="sidebar-section">
+        <h3 className="section-title">深海遗迹</h3>
+        <div className="ruin-list">
+          {gameState.ruins?.length === 0 && (
+            <div className="empty-hint">暂无可显示的遗迹</div>
+          )}
+          {gameState.ruins?.map(ruin => {
+            const statusText = { idle: '空闲', excavating: '发掘中', captured: '已占领' }[ruin.status] || ruin.status;
+            const owner = ruin.ownerId ? gameState.players.find(p => p.id === ruin.ownerId) : null;
+            const excavator = ruin.excavatorPlayerId ? gameState.players.find(p => p.id === ruin.excavatorPlayerId) : null;
+            const visible = gameState.map[`${ruin.q},${ruin.r}`]?.visible || gameState.map[`${ruin.q},${ruin.r}`]?.explored;
+            if (!visible) return null;
+
+            const handleRuinClick = () => {
+              const event = new CustomEvent('panToBase', {
+                detail: { q: ruin.q, r: ruin.r }
+              });
+              window.dispatchEvent(event);
+            };
+
+            return (
+              <div key={`${ruin.q},${ruin.r}`} className="ruin-item" onClick={handleRuinClick}>
+                <div className="ruin-header">
+                  <span className="ruin-icon">🏛️</span>
+                  <span className="ruin-coord">({ruin.q}, {ruin.r})</span>
+                  <span className={`ruin-status ${ruin.status}`}>{statusText}</span>
+                </div>
+                {ruin.status === 'excavating' && (
+                  <div className="ruin-progress">
+                    <div className="ruin-progress-bar">
+                      <div
+                        className="ruin-progress-fill"
+                        style={{
+                          width: `${(ruin.progress / ruin.maxProgress) * 100}%`,
+                          background: excavator?.color || '#ba68c8'
+                        }}
+                      />
+                    </div>
+                    <span className="ruin-progress-text">
+                      {excavator?.name || '未知'} {ruin.progress}/{ruin.maxProgress}
+                    </span>
+                  </div>
+                )}
+                {ruin.status === 'captured' && owner && (
+                  <div className="ruin-owner">
+                    <span className="ruin-owner-dot" style={{ background: owner.color }} />
+                    <span>{owner.name} 占领</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="sidebar-section">
         <h3 className="section-title">玩家列表</h3>
         <div className="player-list">
           {gameState.players.map(player => (

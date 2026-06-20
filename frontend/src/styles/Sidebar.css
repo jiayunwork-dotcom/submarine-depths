@@ -361,3 +361,117 @@
   color: #bdbdbd;
   border-radius: 4px;
 }
+
+.ruin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: #78909c;
+  font-style: italic;
+  padding: 10px;
+  text-align: center;
+}
+
+.ruin-item {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid rgba(186, 104, 200, 0.15);
+}
+
+.ruin-item:hover {
+  background: rgba(186, 104, 200, 0.1);
+  border-color: rgba(186, 104, 200, 0.35);
+}
+
+.ruin-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ruin-icon {
+  font-size: 16px;
+}
+
+.ruin-coord {
+  font-size: 12px;
+  font-family: monospace;
+  color: #90caf9;
+}
+
+.ruin-status {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ruin-status.idle {
+  background: rgba(255, 215, 0, 0.15);
+  color: #ffd700;
+}
+
+.ruin-status.excavating {
+  background: rgba(100, 181, 246, 0.15);
+  color: #64b5f6;
+  animation: pulse-excavating 1.5s infinite;
+}
+
+.ruin-status.captured {
+  background: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+}
+
+@keyframes pulse-excavating {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.ruin-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ruin-progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ruin-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.ruin-progress-text {
+  font-size: 11px;
+  color: #b0bec5;
+}
+
+.ruin-owner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #a5d6a7;
+}
+
+.ruin-owner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}

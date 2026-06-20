@@ -6,6 +6,7 @@ import TopBar from './TopBar';
 import BuildPanel from './BuildPanel';
 import ResearchPanel from './ResearchPanel';
 import EventLog from './EventLog';
+import TechScorePanel from './TechScorePanel';
 import '../styles/GameView.css';
 
 function GameView({ onExit }) {
@@ -80,6 +81,7 @@ function GameView({ onExit }) {
       <div className="game-main">
         <div className="map-container" ref={mapContainerRef}>
           <HexMap />
+          {gameState && !gameState.isFinished && <TechScorePanel />}
         </div>
         
         <Sidebar />
