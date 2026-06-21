@@ -182,6 +182,10 @@ class Game {
     this.eventLog = [];
     this.combatLog = [];
     
+    if (this.bountyManager) {
+      this.bountyManager.preExecution();
+    }
+    
     this.processSubmarineMovements();
     this.processResourceGathering();
     this.processBaseProduction();

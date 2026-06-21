@@ -45,6 +45,14 @@ class BountyManager {
     this.playerTasks = new Map();
     this.playerTaskAssists = new Map();
     this.lastRefreshTurn = 0;
+    this.mineralSnapshots = new Map();
+  }
+
+  snapshotMinerals() {
+    this.mineralSnapshots.clear();
+    for (const player of this.game.players) {
+      this.mineralSnapshots.set(player.id, player.base.storage.mineral);
+    }
   }
 
   refreshTaskPool() {
@@ -330,29 +338,25 @@ class BountyManager {
 
     switch (task.type) {
       case 'MINING': {
-        let totalMinedNearTarget = 0;
+        let minedNearTarget = 0;
         for (const pid of allPlayerIds) {
           const p = this.game.getPlayer(pid);
           if (!p) continue;
-          for (const sub of p.submarines) {
-            if (sub.status === 'sunk' || sub.status === 'adrift') continue;
-            if (task.targetQ !== null && task.targetR !== null) {
-              const dist = this.game.map.getDistance(sub.q, sub.r, task.targetQ, task.targetR);
-              if (dist <= 3) {
-                const distToBase = this.game.map.getDistance(sub.q, sub.r, p.base.q, p.base.r);
-                if (distToBase <= 1) {
-                  const cargo = sub.cargo || {};
-                  totalMinedNearTarget += (cargo.mineral || 0);
-                }
-              }
-            }
+          const hasSubNearTarget = p.submarines.some(sub => {
+            if (sub.status === 'sunk' || sub.status === 'adrift') return false;
+            if (task.targetQ === null || task.targetR === null) return false;
+            const dist = this.game.map.getDistance(sub.q, sub.r, task.targetQ, task.targetR);
+            return dist <= 3;
+          });
+          if (!hasSubNearTarget) continue;
+          const prevMineral = this.mineralSnapshots.get(pid) || 0;
+          const currentMineral = p.base.storage.mineral;
+          if (currentMineral > prevMineral) {
+            minedNearTarget += (currentMineral - prevMineral);
           }
         }
-        if (totalMinedNearTarget > 0 || task.progress < task.targetAmount) {
-          const baseMineralDelta = this.calculateMineralDelta(player);
-          if (baseMineralDelta > 0) {
-            task.progress = Math.min(task.targetAmount, task.progress + baseMineralDelta);
-          }
+        if (minedNearTarget > 0) {
+          task.progress = Math.min(task.targetAmount, task.progress + minedNearTarget);
         }
         break;
       }
@@ -398,10 +402,6 @@ class BountyManager {
         break;
       }
     }
-  }
-
-  calculateMineralDelta(player) {
-    return Math.floor(Math.random() * 10) + 5;
   }
 
   grantReward(task, player) {
@@ -455,6 +455,10 @@ class BountyManager {
     }
 
     this.checkProgress();
+  }
+
+  preExecution() {
+    this.snapshotMinerals();
   }
 
   getPlayerActiveTasks(playerId) {

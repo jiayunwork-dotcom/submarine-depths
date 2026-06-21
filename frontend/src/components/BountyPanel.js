@@ -241,13 +241,6 @@ function BountyPanel() {
           ) : (
             <div className="no-tasks">暂无可接取的悬赏任务，等待下次刷新</div>
           )}
-
-          {allyTasks.length > 0 && (
-            <div className="ally-tasks-section">
-              <h4>🤝 盟友任务</h4>
-              {allyTasks.map(renderAllyTask)}
-            </div>
-          )}
         </div>
       )}
 
@@ -257,6 +250,13 @@ function BountyPanel() {
             myTasks.map(renderMyTask)
           ) : (
             <div className="no-tasks">暂无进行中的任务，去任务池接取吧</div>
+          )}
+
+          {allyTasks.length > 0 && (
+            <div className="ally-tasks-section">
+              <h4>🤝 盟友任务</h4>
+              {allyTasks.map(renderAllyTask)}
+            </div>
           )}
 
           {myCompletedTasks.length > 0 && (
