@@ -209,6 +209,18 @@ class GameWebSocket {
     this.send('assist_bounty', { taskId });
   }
 
+  createAuction(itemType, quantity, startPrice, duration) {
+    this.send('create_auction', { itemType, quantity, startPrice, duration });
+  }
+
+  placeAuctionBid(listingId, bidPrice) {
+    this.send('auction_bid', { listingId, bidPrice });
+  }
+
+  cancelAuction(listingId) {
+    this.send('cancel_auction', { listingId });
+  }
+
   disconnect() {
     if (this.ws) {
       this.ws.close();

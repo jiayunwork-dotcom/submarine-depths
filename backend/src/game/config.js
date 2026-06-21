@@ -179,6 +179,19 @@ const CONFIG = {
     }
   },
 
+  AUCTION: {
+    MAX_LISTINGS_PER_PLAYER: 3,
+    MAX_BIDS_PER_PLAYER: 5,
+    MIN_DURATION: 2,
+    MAX_DURATION: 6,
+    MIN_BID_INCREMENT_RATIO: 0.1,
+    ITEM_TYPES: {
+      mineral: { name: '矿物', minQuantity: 10, icon: '💎' },
+      bio_sample: { name: '生物样本', minQuantity: 5, icon: '🧬' },
+      techPoints: { name: '科技点', minQuantity: 3, icon: '🔬' }
+    }
+  },
+
   COLORS: [
     '#3498db',
     '#e74c3c',

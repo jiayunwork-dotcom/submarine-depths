@@ -124,6 +124,15 @@ class WebSocketHandler {
         case 'assist_bounty':
           this.handleAssistBounty(ws, payload);
           break;
+        case 'create_auction':
+          this.handleCreateAuction(ws, payload);
+          break;
+        case 'auction_bid':
+          this.handleAuctionBid(ws, payload);
+          break;
+        case 'cancel_auction':
+          this.handleCancelAuction(ws, payload);
+          break;
         default:
           console.log('Unknown message type:', type);
       }
@@ -627,6 +636,63 @@ class WebSocketHandler {
     
     if (result.success) {
       this.send(ws, 'bounty_assisted', { taskId });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleCreateAuction(ws, payload) {
+    const { itemType, quantity, startPrice, duration } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.createAuction(gamePlayerId, itemType, quantity, startPrice, duration);
+    
+    if (result.success) {
+      this.send(ws, 'auction_created', { listing: result.listing });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleAuctionBid(ws, payload) {
+    const { listingId, bidPrice } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.placeAuctionBid(gamePlayerId, listingId, bidPrice);
+    
+    if (result.success) {
+      this.send(ws, 'auction_bid_placed', { listing: result.listing });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleCancelAuction(ws, payload) {
+    const { listingId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.cancelAuction(gamePlayerId, listingId);
+    
+    if (result.success) {
+      this.send(ws, 'auction_cancelled', { listingId });
     } else {
       this.send(ws, 'error', { message: result.message });
     }

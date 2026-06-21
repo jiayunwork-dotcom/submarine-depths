@@ -3,6 +3,7 @@ const Player = require('./Player');
 const CombatSystem = require('./CombatSystem');
 const AllianceManager = require('./AllianceManager');
 const BountyManager = require('./BountyManager');
+const AuctionManager = require('./AuctionManager');
 const CONFIG = require('./config');
 const { v4: uuidv4 } = require('uuid');
 
@@ -23,6 +24,7 @@ class Game {
     this.scoreRankings = [];
     this.allianceManager = null;
     this.bountyManager = null;
+    this.auctionManager = null;
     
     this.planningTimer = CONFIG.PLANNING_TIME;
     this.currentDirection = 0;
@@ -47,6 +49,7 @@ class Game {
 
     this.allianceManager = new AllianceManager(this);
     this.bountyManager = new BountyManager(this);
+    this.auctionManager = new AuctionManager(this);
 
     for (const player of this.players) {
       this.updateVisibility(player);
@@ -722,6 +725,10 @@ class Game {
       this.bountyManager.processTurnEnd();
     }
     
+    if (this.auctionManager) {
+      this.auctionManager.processTurnEnd();
+    }
+    
     const alivePlayers = this.players.filter(p => !p.isDefeated);
     if (alivePlayers.length <= 1) {
       this.endGame(alivePlayers[0] || null);
@@ -955,8 +962,24 @@ class Game {
       ruins: this.getAllRuinsState(),
       scoreRankings: this.scoreRankings,
       alliances: this.allianceManager ? this.allianceManager.getStateForPlayer(playerId) : null,
-      bounties: this.bountyManager ? this.bountyManager.getStateForPlayer(playerId) : null
+      bounties: this.bountyManager ? this.bountyManager.getStateForPlayer(playerId) : null,
+      auctions: this.auctionManager ? this.auctionManager.getStateForPlayer(playerId) : null
     };
+  }
+
+  createAuction(playerId, itemType, quantity, startPrice, duration) {
+    if (!this.auctionManager) return { success: false, message: '拍卖系统未初始化' };
+    return this.auctionManager.createListing(playerId, itemType, quantity, startPrice, duration);
+  }
+
+  placeAuctionBid(playerId, listingId, bidPrice) {
+    if (!this.auctionManager) return { success: false, message: '拍卖系统未初始化' };
+    return this.auctionManager.placeBid(playerId, listingId, bidPrice);
+  }
+
+  cancelAuction(playerId, listingId) {
+    if (!this.auctionManager) return { success: false, message: '拍卖系统未初始化' };
+    return this.auctionManager.cancelListing(playerId, listingId);
   }
 
   createAlliance(playerId, name) {

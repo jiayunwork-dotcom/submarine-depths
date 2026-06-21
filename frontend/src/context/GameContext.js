@@ -18,6 +18,8 @@ export function GameProvider({ children }) {
   const [allianceTab, setAllianceTab] = useState('members');
   const [showBountyPanel, setShowBountyPanel] = useState(false);
   const [bountyTab, setBountyTab] = useState('pool');
+  const [showAuctionPanel, setShowAuctionPanel] = useState(false);
+  const [auctionTab, setAuctionTab] = useState('market');
 
   useEffect(() => {
     const handleConnect = () => setIsConnected(true);
@@ -136,6 +138,8 @@ export function GameProvider({ children }) {
     setTransferDialogTarget(null);
     setShowBountyPanel(false);
     setBountyTab('pool');
+    setShowAuctionPanel(false);
+    setAuctionTab('market');
   }, []);
 
   const createAlliance = useCallback((name) => {
@@ -193,6 +197,18 @@ export function GameProvider({ children }) {
     gameWS.assistBounty(taskId);
   }, []);
 
+  const createAuction = useCallback((itemType, quantity, startPrice, duration) => {
+    gameWS.createAuction(itemType, quantity, startPrice, duration);
+  }, []);
+
+  const placeAuctionBid = useCallback((listingId, bidPrice) => {
+    gameWS.placeAuctionBid(listingId, bidPrice);
+  }, []);
+
+  const cancelAuction = useCallback((listingId) => {
+    gameWS.cancelAuction(listingId);
+  }, []);
+
   const value = {
     gameState,
     roomState,
@@ -243,7 +259,14 @@ export function GameProvider({ children }) {
     acceptBounty,
     assistBounty,
     setShowBountyPanel,
-    setBountyTab
+    setBountyTab,
+    showAuctionPanel,
+    auctionTab,
+    createAuction,
+    placeAuctionBid,
+    cancelAuction,
+    setShowAuctionPanel,
+    setAuctionTab
   };
 
   return (

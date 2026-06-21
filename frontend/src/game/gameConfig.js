@@ -78,6 +78,12 @@ export const CONFIG = {
     mineral: '💎',
     bio_sample: '🐠',
     techPoints: '🔬'
+  },
+
+  AUCTION_ITEM_TYPES: {
+    mineral: { name: '矿物', minQuantity: 10, icon: '💎' },
+    bio_sample: { name: '生物样本', minQuantity: 5, icon: '🧬' },
+    techPoints: { name: '科技点', minQuantity: 3, icon: '🔬' }
   }
 };
 

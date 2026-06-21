@@ -10,6 +10,7 @@ import TechScorePanel from './TechScorePanel';
 import AlliancePanel from './AlliancePanel';
 import TransferDialog from './TransferDialog';
 import BountyPanel from './BountyPanel';
+import AuctionPanel from './AuctionPanel';
 import '../styles/GameView.css';
 
 function GameView({ onExit }) {
@@ -87,6 +88,7 @@ function GameView({ onExit }) {
           {gameState && !gameState.isFinished && <TechScorePanel />}
           <AlliancePanel />
           <BountyPanel />
+          <AuctionPanel />
         </div>
         
         <Sidebar />
