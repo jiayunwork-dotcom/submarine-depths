@@ -197,8 +197,8 @@ export function GameProvider({ children }) {
     gameWS.assistBounty(taskId);
   }, []);
 
-  const createAuction = useCallback((itemType, quantity, startPrice, duration) => {
-    gameWS.createAuction(itemType, quantity, startPrice, duration);
+  const createAuction = useCallback((itemType, quantity, startPrice, duration, buyNowEnabled, buyNowPrice) => {
+    gameWS.createAuction(itemType, quantity, startPrice, duration, buyNowEnabled, buyNowPrice);
   }, []);
 
   const placeAuctionBid = useCallback((listingId, bidPrice) => {
@@ -207,6 +207,10 @@ export function GameProvider({ children }) {
 
   const cancelAuction = useCallback((listingId) => {
     gameWS.cancelAuction(listingId);
+  }, []);
+
+  const buyNowAuction = useCallback((listingId) => {
+    gameWS.buyNowAuction(listingId);
   }, []);
 
   const value = {
@@ -265,6 +269,7 @@ export function GameProvider({ children }) {
     createAuction,
     placeAuctionBid,
     cancelAuction,
+    buyNowAuction,
     setShowAuctionPanel,
     setAuctionTab
   };

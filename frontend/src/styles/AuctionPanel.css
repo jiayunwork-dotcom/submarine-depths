@@ -541,3 +541,183 @@
   border-left: 3px solid #64748b;
   opacity: 0.7;
 }
+
+.buy-now-row {
+  padding: 4px 0;
+}
+
+.buy-now-row .price-value.buy-now-price {
+  color: #f59e0b;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.buy-now-tag {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.buy-now-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.buy-now-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.buy-now-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.buy-now-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.buy-now-input-group {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+}
+
+.auction-history {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  transition: all 0.2s;
+}
+
+.history-item:hover {
+  border-color: rgba(102, 126, 234, 0.3);
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.history-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.history-item-icon {
+  font-size: 18px;
+}
+
+.history-item-name {
+  flex: 1;
+  font-weight: 600;
+  color: #f1f5f9;
+  font-size: 13px;
+}
+
+.history-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+
+.history-status.status-sold {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.history-status.status-flow {
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+}
+
+.history-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.history-label {
+  color: #64748b;
+}
+
+.history-value {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.auction-footer {
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tax-info {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.tax-value {
+  color: #f59e0b;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tax-rate-hint {
+  font-size: 11px;
+  color: #64748b;
+}

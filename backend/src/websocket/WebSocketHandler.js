@@ -133,6 +133,9 @@ class WebSocketHandler {
         case 'cancel_auction':
           this.handleCancelAuction(ws, payload);
           break;
+        case 'auction_buy_now':
+          this.handleAuctionBuyNow(ws, payload);
+          break;
         default:
           console.log('Unknown message type:', type);
       }
@@ -644,14 +647,14 @@ class WebSocketHandler {
   }
 
   handleCreateAuction(ws, payload) {
-    const { itemType, quantity, startPrice, duration } = payload;
+    const { itemType, quantity, startPrice, duration, buyNowEnabled, buyNowPrice } = payload;
     const client = this.clients.get(ws.clientId);
     
     const game = roomManager.getGameByPlayer(client.playerId);
     if (!game || game.phase !== 'planning') return;
     
     const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
-    const result = game.createAuction(gamePlayerId, itemType, quantity, startPrice, duration);
+    const result = game.createAuction(gamePlayerId, itemType, quantity, startPrice, duration, buyNowEnabled, buyNowPrice);
     
     if (result.success) {
       this.send(ws, 'auction_created', { listing: result.listing });
@@ -693,6 +696,25 @@ class WebSocketHandler {
     
     if (result.success) {
       this.send(ws, 'auction_cancelled', { listingId });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleAuctionBuyNow(ws, payload) {
+    const { listingId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.buyNowAuction(gamePlayerId, listingId);
+    
+    if (result.success) {
+      this.send(ws, 'auction_buy_now_success', { listing: result.listing });
     } else {
       this.send(ws, 'error', { message: result.message });
     }

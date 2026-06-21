@@ -209,8 +209,8 @@ class GameWebSocket {
     this.send('assist_bounty', { taskId });
   }
 
-  createAuction(itemType, quantity, startPrice, duration) {
-    this.send('create_auction', { itemType, quantity, startPrice, duration });
+  createAuction(itemType, quantity, startPrice, duration, buyNowEnabled, buyNowPrice) {
+    this.send('create_auction', { itemType, quantity, startPrice, duration, buyNowEnabled, buyNowPrice });
   }
 
   placeAuctionBid(listingId, bidPrice) {
@@ -219,6 +219,10 @@ class GameWebSocket {
 
   cancelAuction(listingId) {
     this.send('cancel_auction', { listingId });
+  }
+
+  buyNowAuction(listingId) {
+    this.send('auction_buy_now', { listingId });
   }
 
   disconnect() {

@@ -12,7 +12,8 @@ function AuctionPanel() {
     setAuctionTab,
     createAuction,
     placeAuctionBid,
-    cancelAuction
+    cancelAuction,
+    buyNowAuction
   } = useGame();
 
   const [filterType, setFilterType] = useState('all');
@@ -21,6 +22,8 @@ function AuctionPanel() {
   const [newQuantity, setNewQuantity] = useState('');
   const [newStartPrice, setNewStartPrice] = useState('');
   const [newDuration, setNewDuration] = useState('3');
+  const [newBuyNowEnabled, setNewBuyNowEnabled] = useState(false);
+  const [newBuyNowPrice, setNewBuyNowPrice] = useState('');
   const [bidPrice, setBidPrice] = useState({});
 
   const auctions = gameState?.auctions;
@@ -30,6 +33,7 @@ function AuctionPanel() {
 
   const activeListings = auctions?.activeListings || [];
   const myListings = auctions?.myListings || [];
+  const history = auctions?.history || [];
   const myActiveListingCount = auctions?.myActiveListingCount || 0;
   const myActiveBidCount = auctions?.myActiveBidCount || 0;
   const maxListings = auctions?.maxListings || 3;
@@ -38,6 +42,9 @@ function AuctionPanel() {
   const minDuration = auctions?.minDuration || 2;
   const maxDuration = auctions?.maxDuration || 6;
   const itemTypes = auctions?.itemTypes || CONFIG.AUCTION_ITEM_TYPES;
+  const buyNowMinMultiplier = auctions?.buyNowMinMultiplier || 2;
+  const taxRate = auctions?.taxRate || 0.05;
+  const totalTaxCollected = auctions?.totalTaxCollected || 0;
 
   const filteredAndSortedListings = useMemo(() => {
     let result = [...activeListings];
@@ -86,13 +93,17 @@ function AuctionPanel() {
     const quantity = parseInt(newQuantity);
     const startPrice = parseInt(newStartPrice);
     const duration = parseInt(newDuration);
+    const buyNowPrice = newBuyNowEnabled ? parseInt(newBuyNowPrice) : null;
 
     if (!quantity || !startPrice || !duration) return;
+    if (newBuyNowEnabled && (!buyNowPrice || buyNowPrice <= 0)) return;
 
-    createAuction(newItemType, quantity, startPrice, duration);
+    createAuction(newItemType, quantity, startPrice, duration, newBuyNowEnabled, buyNowPrice);
     setNewQuantity('');
     setNewStartPrice('');
     setNewDuration('3');
+    setNewBuyNowEnabled(false);
+    setNewBuyNowPrice('');
   };
 
   const getListingStatus = (listing) => {
@@ -137,6 +148,7 @@ function AuctionPanel() {
     const isOwnListing = listing.sellerId === currentPlayerId;
     const isHighestBidder = listing.highestBidderId === currentPlayerId;
     const minBid = getMinBid(listing);
+    const canBuyNow = listing.buyNowEnabled && !isOwnListing && phase === 'planning';
 
     return (
       <div key={listing.id} className="auction-card">
@@ -155,6 +167,13 @@ function AuctionPanel() {
             <span className="price-value current">💎 {listing.currentPrice}</span>
             {isHighestBidder && <span className="highest-bidder-tag">你领先</span>}
           </div>
+          {listing.buyNowEnabled && (
+            <div className="auction-price-row buy-now-row">
+              <span className="price-label">一口价:</span>
+              <span className="price-value buy-now-price">💎 {listing.buyNowPrice}</span>
+              <span className="buy-now-tag">一口价</span>
+            </div>
+          )}
           {listing.highestBidderName && (
             <div className="auction-bidder">
               最高出价者: {listing.highestBidderName}
@@ -190,6 +209,15 @@ function AuctionPanel() {
             >
               快速出价 💎{minBid}
             </button>
+            {canBuyNow && (
+              <button
+                className="buy-now-btn"
+                onClick={() => buyNowAuction(listing.id)}
+                disabled={myActiveBidCount >= maxBids}
+              >
+                一口价买断 💎{listing.buyNowPrice}
+              </button>
+            )}
           </div>
         )}
         {isOwnListing && (
@@ -312,6 +340,12 @@ function AuctionPanel() {
         >
           挂牌
         </button>
+        <button
+          className={`tab-btn ${auctionTab === 'history' ? 'active' : ''}`}
+          onClick={() => setAuctionTab('history')}
+        >
+          历史
+        </button>
       </div>
 
       {auctionTab === 'market' && (
@@ -431,6 +465,38 @@ function AuctionPanel() {
                   </select>
                 </div>
 
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      className="buy-now-checkbox"
+                      checked={newBuyNowEnabled}
+                      onChange={(e) => {
+                        setNewBuyNowEnabled(e.target.checked);
+                        if (!e.target.checked) {
+                          setNewBuyNowPrice('');
+                        }
+                      }}
+                    />
+                    启用一口价
+                  </label>
+                  {newBuyNowEnabled && (
+                    <div className="buy-now-input-group">
+                      <input
+                        type="number"
+                        className="form-input"
+                        min="1"
+                        value={newBuyNowPrice}
+                        onChange={(e) => setNewBuyNowPrice(e.target.value)}
+                        placeholder={`买断价格（最低起拍价的${buyNowMinMultiplier}倍）`}
+                      />
+                      <div className="resource-hint">
+                        最低买断价: 💎 {parseInt(newStartPrice || 0) * buyNowMinMultiplier} 矿物
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   className="create-auction-btn"
                   onClick={handleCreateAuction}
@@ -440,7 +506,8 @@ function AuctionPanel() {
                     parseInt(newQuantity) < itemTypes[newItemType].minQuantity ||
                     parseInt(newQuantity) > getAvailableResource(newItemType) ||
                     !newStartPrice ||
-                    parseInt(newStartPrice) <= 0
+                    parseInt(newStartPrice) <= 0 ||
+                    (newBuyNowEnabled && (!newBuyNowPrice || parseInt(newBuyNowPrice) < parseInt(newStartPrice) * buyNowMinMultiplier))
                   }
                 >
                   挂牌出售
@@ -454,6 +521,59 @@ function AuctionPanel() {
           )}
         </div>
       )}
+
+      {auctionTab === 'history' && (
+        <div className="auction-history">
+          {history.length > 0 ? (
+            <div className="history-list">
+              {history.map((item) => (
+                <div key={item.id} className="history-item">
+                  <div className="history-item-header">
+                    <span className="history-item-icon">{item.itemIcon}</span>
+                    <span className="history-item-name">{item.itemName} × {item.quantity}</span>
+                    <span className={`history-status ${item.finalStatus === 'sold' ? 'status-sold' : 'status-flow'}`}>
+                      {item.finalStatus === 'sold' ? '已成交' : '流拍'}
+                    </span>
+                  </div>
+                  <div className="history-item-body">
+                    <div className="history-row">
+                      <span className="history-label">成交价:</span>
+                      <span className="history-value">
+                        {item.finalStatus === 'sold' ? `💎 ${item.finalPrice}` : '流拍'}
+                      </span>
+                    </div>
+                    <div className="history-row">
+                      <span className="history-label">买家:</span>
+                      <span className="history-value">
+                        {item.finalStatus === 'sold' ? item.finalBuyerName : '-'}
+                      </span>
+                    </div>
+                    <div className="history-row">
+                      <span className="history-label">卖家:</span>
+                      <span className="history-value">{item.sellerName}</span>
+                    </div>
+                    <div className="history-row">
+                      <span className="history-label">结算回合:</span>
+                      <span className="history-value">第 {item.settledTurn} 回合</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="no-auctions">暂无历史记录</div>
+          )}
+        </div>
+      )}
+
+      <div className="auction-footer">
+        <div className="tax-info">
+          💰 本局累计税收: <span className="tax-value">💎 {totalTaxCollected}</span> 矿物
+        </div>
+        <div className="tax-rate-hint">
+          税率: {(taxRate * 100).toFixed(0)}%
+        </div>
+      </div>
     </div>
   );
 }

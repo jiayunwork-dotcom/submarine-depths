@@ -967,14 +967,19 @@ class Game {
     };
   }
 
-  createAuction(playerId, itemType, quantity, startPrice, duration) {
+  createAuction(playerId, itemType, quantity, startPrice, duration, buyNowEnabled = false, buyNowPrice = null) {
     if (!this.auctionManager) return { success: false, message: '拍卖系统未初始化' };
-    return this.auctionManager.createListing(playerId, itemType, quantity, startPrice, duration);
+    return this.auctionManager.createListing(playerId, itemType, quantity, startPrice, duration, buyNowEnabled, buyNowPrice);
   }
 
   placeAuctionBid(playerId, listingId, bidPrice) {
     if (!this.auctionManager) return { success: false, message: '拍卖系统未初始化' };
     return this.auctionManager.placeBid(playerId, listingId, bidPrice);
+  }
+
+  buyNowAuction(playerId, listingId) {
+    if (!this.auctionManager) return { success: false, message: '拍卖系统未初始化' };
+    return this.auctionManager.buyNow(playerId, listingId);
   }
 
   cancelAuction(playerId, listingId) {

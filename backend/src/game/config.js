@@ -185,6 +185,9 @@ const CONFIG = {
     MIN_DURATION: 2,
     MAX_DURATION: 6,
     MIN_BID_INCREMENT_RATIO: 0.1,
+    HISTORY_LIMIT: 20,
+    TAX_RATE: 0.05,
+    BUY_NOW_MIN_MULTIPLIER: 2,
     ITEM_TYPES: {
       mineral: { name: '矿物', minQuantity: 10, icon: '💎' },
       bio_sample: { name: '生物样本', minQuantity: 5, icon: '🧬' },
