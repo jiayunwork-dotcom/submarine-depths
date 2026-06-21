@@ -16,6 +16,8 @@ export function GameProvider({ children }) {
   const [transferDialogTarget, setTransferDialogTarget] = useState(null);
   const [activeVoteDialog, setActiveVoteDialog] = useState(null);
   const [allianceTab, setAllianceTab] = useState('members');
+  const [showBountyPanel, setShowBountyPanel] = useState(false);
+  const [bountyTab, setBountyTab] = useState('pool');
 
   useEffect(() => {
     const handleConnect = () => setIsConnected(true);
@@ -132,6 +134,8 @@ export function GameProvider({ children }) {
     setSelectedTile(null);
     setShowAlliancePanel(false);
     setTransferDialogTarget(null);
+    setShowBountyPanel(false);
+    setBountyTab('pool');
   }, []);
 
   const createAlliance = useCallback((name) => {
@@ -181,6 +185,14 @@ export function GameProvider({ children }) {
     setActiveVoteDialog(null);
   }, []);
 
+  const acceptBounty = useCallback((taskId) => {
+    gameWS.acceptBounty(taskId);
+  }, []);
+
+  const assistBounty = useCallback((taskId) => {
+    gameWS.assistBounty(taskId);
+  }, []);
+
   const value = {
     gameState,
     roomState,
@@ -225,7 +237,13 @@ export function GameProvider({ children }) {
     declareWar,
     castWarVote,
     proposeEndWar,
-    castEndWarVote
+    castEndWarVote,
+    showBountyPanel,
+    bountyTab,
+    acceptBounty,
+    assistBounty,
+    setShowBountyPanel,
+    setBountyTab
   };
 
   return (

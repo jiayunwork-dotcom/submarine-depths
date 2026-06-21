@@ -59,7 +59,26 @@ export const CONFIG = {
     '#f39c12',
     '#9b59b6',
     '#1abc9c'
-  ]
+  ],
+
+  BOUNTY_TYPES: {
+    MINING: { name: '采矿任务', icon: '⛏️' },
+    SCOUT: { name: '侦察任务', icon: '🔍' },
+    COMBAT: { name: '战斗任务', icon: '⚔️' },
+    RUIN: { name: '遗迹任务', icon: '🏛️' }
+  },
+
+  BOUNTY_REWARD_NAMES: {
+    mineral: '矿物',
+    bio_sample: '生物样本',
+    techPoints: '科技点'
+  },
+
+  BOUNTY_REWARD_ICONS: {
+    mineral: '💎',
+    bio_sample: '🐠',
+    techPoints: '🔬'
+  }
 };
 
 export const HEX_SIZE = 28;

@@ -165,6 +165,20 @@ const CONFIG = {
     ADVANCED_PROPULSION: { name: '先进推进', cost: 45, effect: '移动力+1', prerequisite: 'DEPTH_1000' }
   },
 
+  BOUNTY: {
+    REFRESH_INTERVAL: 5,
+    TASKS_PER_REFRESH: 3,
+    MAX_POOL_SIZE: 6,
+    MAX_PLAYER_TASKS: 2,
+    ALLIANCE_BONUS: 0.2,
+    FAILURE_PENALTY: 10,
+    BASE_REWARDS: {
+      mineral: 30,
+      bio_sample: 15,
+      techPoints: 10
+    }
+  },
+
   COLORS: [
     '#3498db',
     '#e74c3c',

@@ -111,6 +111,8 @@ function HexMap() {
 
     drawSonarBuoys(ctx);
 
+    drawBountyMarkers(ctx);
+
     if (buoyDeployMode) {
       drawBuoyDeployOverlay(ctx);
     }
@@ -534,6 +536,38 @@ function HexMap() {
           }
         }
       }
+    }
+  };
+
+  const drawBountyMarkers = (ctx) => {
+    const bountyTargets = gameState.bounties?.bountyTargets || [];
+    
+    for (const target of bountyTargets) {
+      const tile = gameState.map[`${target.q},${target.r}`];
+      if (!tile || !tile.visible) continue;
+      
+      const { x, y } = hexToPixel(target.q, target.r);
+      const size = HEX_SIZE * 0.45;
+      
+      ctx.beginPath();
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x + size, y);
+      ctx.lineTo(x, y + size);
+      ctx.lineTo(x - size, y);
+      ctx.closePath();
+      
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.35)';
+      ctx.fill();
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffd700';
+      const typeIcon = { MINING: '⛏', SCOUT: '🔍', COMBAT: '⚔', RUIN: '🏛' }[target.type] || '🏴';
+      ctx.fillText(typeIcon, x, y);
     }
   };
 

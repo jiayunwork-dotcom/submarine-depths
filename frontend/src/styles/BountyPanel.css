@@ -1,0 +1,402 @@
+.bounty-panel-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 80px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+  transition: all 0.3s ease;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bounty-panel-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+}
+
+.bounty-task-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #e74c3c;
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.bounty-panel {
+  position: absolute;
+  bottom: 70px;
+  right: 80px;
+  width: 360px;
+  max-height: 520px;
+  background: rgba(20, 30, 48, 0.95);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 12px;
+  color: white;
+  padding: 20px;
+  z-index: 100;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.bounty-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.bounty-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #ffd700;
+}
+
+.bounty-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bounty-tabs .tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bounty-tabs .tab-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.bounty-tabs .tab-btn.active {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  color: #1a1a1a;
+  font-weight: bold;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.bounty-tabs .tab-btn.active .tab-badge {
+  background: rgba(0, 0, 0, 0.2);
+  color: #1a1a1a;
+}
+
+.bounty-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bounty-card {
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.bounty-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bounty-card.my-task {
+  border-color: rgba(100, 181, 246, 0.3);
+}
+
+.bounty-card.my-task.urgent {
+  border-color: rgba(231, 76, 60, 0.5);
+  background: rgba(231, 76, 60, 0.05);
+  animation: urgent-pulse 2s ease-in-out infinite;
+}
+
+@keyframes urgent-pulse {
+  0%, 100% { border-color: rgba(231, 76, 60, 0.5); }
+  50% { border-color: rgba(231, 76, 60, 0.9); }
+}
+
+.bounty-card.ally-task {
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+.bounty-card.completed-task {
+  opacity: 0.7;
+}
+
+.bounty-card.completed-task.completed {
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.bounty-card.completed-task.failed {
+  border-color: rgba(231, 76, 60, 0.3);
+}
+
+.bounty-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bounty-type-icon {
+  font-size: 16px;
+}
+
+.bounty-type-name {
+  font-weight: bold;
+  font-size: 14px;
+  flex: 1;
+}
+
+.bounty-difficulty {
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bounty-owner {
+  font-size: 12px;
+  color: #90caf9;
+}
+
+.bounty-description {
+  font-size: 13px;
+  color: #ccc;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.bounty-target {
+  font-size: 12px;
+  color: #ffd700;
+  margin-bottom: 6px;
+}
+
+.bounty-reward {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.reward-icon {
+  font-size: 14px;
+}
+
+.reward-text {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.alliance-bonus-tag {
+  font-size: 11px;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+
+.bounty-timelimit {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+
+.time-urgent {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.bounty-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.bounty-progress-bar {
+  flex: 1;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.bounty-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50 0%, #66bb6a 100%);
+  transition: width 0.3s ease;
+  border-radius: 5px;
+}
+
+.bounty-progress-text {
+  font-size: 12px;
+  color: #aaa;
+  min-width: 50px;
+  text-align: right;
+}
+
+.bounty-assistants {
+  font-size: 12px;
+  color: #90caf9;
+  margin-bottom: 6px;
+}
+
+.bounty-penalty {
+  font-size: 12px;
+  color: #e74c3c;
+}
+
+.bounty-accept-btn {
+  width: 100%;
+  padding: 8px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.bounty-accept-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.bounty-accept-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  background: #7f8c8d;
+  color: #ccc;
+}
+
+.bounty-assist-btn {
+  width: 100%;
+  padding: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.bounty-assist-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.bounty-assist-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.already-assisting {
+  text-align: center;
+  padding: 6px;
+  background: rgba(102, 126, 234, 0.15);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #90caf9;
+  margin-top: 4px;
+}
+
+.task-status {
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.task-status.completed {
+  color: #4caf50;
+  background: rgba(76, 175, 80, 0.15);
+}
+
+.task-status.failed {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.15);
+}
+
+.no-tasks {
+  text-align: center;
+  color: #888;
+  padding: 30px 20px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ally-tasks-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.ally-tasks-section h4 {
+  font-size: 14px;
+  color: #90caf9;
+  margin: 0 0 10px 0;
+}
+
+.completed-tasks-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.completed-tasks-section h4 {
+  font-size: 14px;
+  color: #aaa;
+  margin: 0 0 10px 0;
+}

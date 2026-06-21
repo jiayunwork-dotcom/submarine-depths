@@ -2,6 +2,7 @@ const HexMap = require('./HexMap');
 const Player = require('./Player');
 const CombatSystem = require('./CombatSystem');
 const AllianceManager = require('./AllianceManager');
+const BountyManager = require('./BountyManager');
 const CONFIG = require('./config');
 const { v4: uuidv4 } = require('uuid');
 
@@ -21,6 +22,7 @@ class Game {
     this.ruins = [];
     this.scoreRankings = [];
     this.allianceManager = null;
+    this.bountyManager = null;
     
     this.planningTimer = CONFIG.PLANNING_TIME;
     this.currentDirection = 0;
@@ -44,6 +46,7 @@ class Game {
     }
 
     this.allianceManager = new AllianceManager(this);
+    this.bountyManager = new BountyManager(this);
 
     for (const player of this.players) {
       this.updateVisibility(player);
@@ -711,6 +714,10 @@ class Game {
       this.allianceManager.processTurnEnd();
     }
     
+    if (this.bountyManager) {
+      this.bountyManager.processTurnEnd();
+    }
+    
     const alivePlayers = this.players.filter(p => !p.isDefeated);
     if (alivePlayers.length <= 1) {
       this.endGame(alivePlayers[0] || null);
@@ -943,7 +950,8 @@ class Game {
       currentDirection: this.map ? this.map.currentDirection : null,
       ruins: this.getAllRuinsState(),
       scoreRankings: this.scoreRankings,
-      alliances: this.allianceManager ? this.allianceManager.getStateForPlayer(playerId) : null
+      alliances: this.allianceManager ? this.allianceManager.getStateForPlayer(playerId) : null,
+      bounties: this.bountyManager ? this.bountyManager.getStateForPlayer(playerId) : null
     };
   }
 
@@ -1025,6 +1033,16 @@ class Game {
   castEndWarVote(playerId, voteId, support) {
     if (!this.allianceManager) return { success: false, message: '联盟系统未初始化' };
     return this.allianceManager.castEndWarVote(playerId, voteId, support);
+  }
+
+  acceptBounty(playerId, taskId) {
+    if (!this.bountyManager) return { success: false, message: '悬赏系统未初始化' };
+    return this.bountyManager.acceptTask(playerId, taskId);
+  }
+
+  assistBounty(playerId, taskId) {
+    if (!this.bountyManager) return { success: false, message: '悬赏系统未初始化' };
+    return this.bountyManager.assistTask(playerId, taskId);
   }
 }
 

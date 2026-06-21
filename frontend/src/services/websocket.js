@@ -201,6 +201,14 @@ class GameWebSocket {
     this.send('cast_end_war_vote', { voteId, support });
   }
 
+  acceptBounty(taskId) {
+    this.send('accept_bounty', { taskId });
+  }
+
+  assistBounty(taskId) {
+    this.send('assist_bounty', { taskId });
+  }
+
   disconnect() {
     if (this.ws) {
       this.ws.close();

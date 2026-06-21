@@ -9,6 +9,7 @@ import EventLog from './EventLog';
 import TechScorePanel from './TechScorePanel';
 import AlliancePanel from './AlliancePanel';
 import TransferDialog from './TransferDialog';
+import BountyPanel from './BountyPanel';
 import '../styles/GameView.css';
 
 function GameView({ onExit }) {
@@ -85,6 +86,7 @@ function GameView({ onExit }) {
           <HexMap />
           {gameState && !gameState.isFinished && <TechScorePanel />}
           <AlliancePanel />
+          <BountyPanel />
         </div>
         
         <Sidebar />

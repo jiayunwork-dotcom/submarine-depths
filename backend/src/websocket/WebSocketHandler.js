@@ -118,6 +118,12 @@ class WebSocketHandler {
         case 'cast_end_war_vote':
           this.handleCastEndWarVote(ws, payload);
           break;
+        case 'accept_bounty':
+          this.handleAcceptBounty(ws, payload);
+          break;
+        case 'assist_bounty':
+          this.handleAssistBounty(ws, payload);
+          break;
         default:
           console.log('Unknown message type:', type);
       }
@@ -583,6 +589,44 @@ class WebSocketHandler {
     
     if (result.success) {
       this.send(ws, 'end_war_vote_cast', result);
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleAcceptBounty(ws, payload) {
+    const { taskId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.acceptBounty(gamePlayerId, taskId);
+    
+    if (result.success) {
+      this.send(ws, 'bounty_accepted', { taskId, task: result.task });
+    } else {
+      this.send(ws, 'error', { message: result.message });
+    }
+    
+    this.broadcastGameState(client.roomCode);
+  }
+
+  handleAssistBounty(ws, payload) {
+    const { taskId } = payload;
+    const client = this.clients.get(ws.clientId);
+    
+    const game = roomManager.getGameByPlayer(client.playerId);
+    if (!game || game.phase !== 'planning') return;
+    
+    const gamePlayerId = roomManager.getGamePlayerId(client.playerId);
+    const result = game.assistBounty(gamePlayerId, taskId);
+    
+    if (result.success) {
+      this.send(ws, 'bounty_assisted', { taskId });
     } else {
       this.send(ws, 'error', { message: result.message });
     }
