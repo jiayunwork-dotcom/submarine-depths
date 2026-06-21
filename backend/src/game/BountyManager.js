@@ -46,12 +46,27 @@ class BountyManager {
     this.playerTaskAssists = new Map();
     this.lastRefreshTurn = 0;
     this.mineralSnapshots = new Map();
+    this.submarinePreStates = new Map();
+    this.subTaskMinerals = new Map();
   }
 
   snapshotMinerals() {
     this.mineralSnapshots.clear();
     for (const player of this.game.players) {
       this.mineralSnapshots.set(player.id, player.base.storage.mineral);
+    }
+  }
+
+  snapshotSubmarines() {
+    this.submarinePreStates.clear();
+    for (const player of this.game.players) {
+      for (const sub of player.submarines) {
+        this.submarinePreStates.set(sub.id, {
+          q: sub.q,
+          r: sub.r,
+          cargoMineral: sub.cargo.mineral
+        });
+      }
     }
   }
 
@@ -300,16 +315,18 @@ class BountyManager {
       const player = this.game.getPlayer(task.acceptedBy);
       if (player) {
         const penalty = CONFIG.BOUNTY.FAILURE_PENALTY;
+        const actualPenalty = Math.min(penalty, player.base.storage.mineral);
         player.base.storage.mineral = Math.max(0, player.base.storage.mineral - penalty);
+        task.penaltyApplied = actualPenalty;
         this.game.eventLog.push({
           type: 'bounty_failed',
           playerId: task.acceptedBy,
           playerName: player.name,
           taskId: task.id,
           taskType: task.typeName,
-          penalty,
+          penalty: actualPenalty,
           turn: this.game.turn,
-          message: `${player.name} 的悬赏任务「${task.description}」超时失败，扣除${penalty}矿物违约金`
+          message: `${player.name} 的悬赏任务「${task.description}」超时失败，扣除${actualPenalty}矿物违约金`
         });
       }
     }
@@ -338,25 +355,41 @@ class BountyManager {
 
     switch (task.type) {
       case 'MINING': {
-        let minedNearTarget = 0;
         for (const pid of allPlayerIds) {
           const p = this.game.getPlayer(pid);
           if (!p) continue;
-          const hasSubNearTarget = p.submarines.some(sub => {
-            if (sub.status === 'sunk' || sub.status === 'adrift') return false;
-            if (task.targetQ === null || task.targetR === null) return false;
-            const dist = this.game.map.getDistance(sub.q, sub.r, task.targetQ, task.targetR);
-            return dist <= 3;
-          });
-          if (!hasSubNearTarget) continue;
-          const prevMineral = this.mineralSnapshots.get(pid) || 0;
-          const currentMineral = p.base.storage.mineral;
-          if (currentMineral > prevMineral) {
-            minedNearTarget += (currentMineral - prevMineral);
+
+          for (const sub of p.submarines) {
+            if (sub.status === 'sunk' || sub.status === 'adrift') continue;
+
+            const preState = this.submarinePreStates.get(sub.id);
+            if (!preState) continue;
+
+            const prevCargo = preState.cargoMineral;
+            const currCargo = sub.cargo.mineral;
+
+            if (currCargo > prevCargo) {
+              const mined = currCargo - prevCargo;
+              const dist = this.game.map.getDistance(sub.q, sub.r, task.targetQ, task.targetR);
+              const tile = this.game.map.getTile(sub.q, sub.r);
+              if (dist <= 3 && sub.type === 'MINER' && tile && tile.terrain === 'MINERAL' && tile.resources >= 0) {
+                this.addSubTaskMineral(sub.id, task.id, mined);
+              }
+            }
+
+            if (currCargo < prevCargo && prevCargo > 0) {
+              const lostRatio = (prevCargo - currCargo) / prevCargo;
+              const taskMineralBefore = this.getSubTaskMineral(sub.id, task.id);
+              const taskMineralLost = Math.floor(taskMineralBefore * lostRatio);
+              if (taskMineralLost > 0) {
+                this.setSubTaskMineral(sub.id, task.id, taskMineralBefore - taskMineralLost);
+                const distToBase = this.game.map.getDistance(sub.q, sub.r, p.base.q, p.base.r);
+                if (distToBase <= 1) {
+                  task.progress = Math.min(task.targetAmount, task.progress + taskMineralLost);
+                }
+              }
+            }
           }
-        }
-        if (minedNearTarget > 0) {
-          task.progress = Math.min(task.targetAmount, task.progress + minedNearTarget);
         }
         break;
       }
@@ -459,6 +492,28 @@ class BountyManager {
 
   preExecution() {
     this.snapshotMinerals();
+    this.snapshotSubmarines();
+  }
+
+  getSubTaskMineral(subId, taskId) {
+    const subMap = this.subTaskMinerals.get(subId);
+    return subMap ? (subMap.get(taskId) || 0) : 0;
+  }
+
+  addSubTaskMineral(subId, taskId, amount) {
+    if (!this.subTaskMinerals.has(subId)) {
+      this.subTaskMinerals.set(subId, new Map());
+    }
+    const subMap = this.subTaskMinerals.get(subId);
+    const current = subMap.get(taskId) || 0;
+    subMap.set(taskId, current + amount);
+  }
+
+  setSubTaskMineral(subId, taskId, amount) {
+    if (!this.subTaskMinerals.has(subId)) {
+      this.subTaskMinerals.set(subId, new Map());
+    }
+    this.subTaskMinerals.get(subId).set(taskId, Math.max(0, amount));
   }
 
   getPlayerActiveTasks(playerId) {
@@ -509,7 +564,8 @@ class BountyManager {
         typeIcon: t.typeIcon,
         description: t.description,
         status: t.status,
-        reward: t.reward
+        reward: t.reward,
+        penaltyApplied: t.penaltyApplied || 0
       })),
       assistedTasks: this.getAssistedTasks(playerId).map(t => this.taskToPrivateState(t)),
       allyTasks: this.getAllianceMemberTasks(playerId),

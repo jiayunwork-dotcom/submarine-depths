@@ -42,7 +42,7 @@
   bottom: 70px;
   right: 80px;
   width: 360px;
-  max-height: 520px;
+  max-height: min(520px, calc(100% - 80px));
   background: rgba(20, 30, 48, 0.95);
   border: 1px solid rgba(255, 215, 0, 0.3);
   border-radius: 12px;
@@ -51,6 +51,27 @@
   z-index: 200;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.bounty-panel .close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.bounty-panel .close-btn:hover {
+  background: rgba(244, 67, 54, 0.3);
+  color: #ef9a9a;
 }
 
 .bounty-panel-header {

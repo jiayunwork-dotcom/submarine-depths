@@ -205,7 +205,7 @@ function BountyPanel() {
         </div>
       )}
       {task.status === 'failed' && (
-        <div className="bounty-penalty">违约金: -10矿物</div>
+        <div className="bounty-penalty">违约金: -{task.penaltyApplied || 10}矿物</div>
       )}
     </div>
   );
