@@ -38,16 +38,140 @@ const DIFFICULTY_LEVELS = [
   { name: '困难', multiplier: 2.0, timeLimit: 5 }
 ];
 
+const STREAK_BONUS_THRESHOLDS = [
+  { streak: 3, multiplier: 0.5, name: '50%' },
+  { streak: 5, multiplier: 1.0, name: '100%' },
+  { streak: 8, multiplier: 2.0, name: '200%' }
+];
+
 class BountyManager {
   constructor(game) {
     this.game = game;
     this.taskPool = [];
     this.playerTasks = new Map();
     this.playerTaskAssists = new Map();
+    this.playerStats = new Map();
     this.lastRefreshTurn = 0;
     this.mineralSnapshots = new Map();
     this.submarinePreStates = new Map();
     this.subTaskMinerals = new Map();
+  }
+
+  getOrCreatePlayerStats(playerId) {
+    if (!this.playerStats.has(playerId)) {
+      this.playerStats.set(playerId, {
+        playerId,
+        completedCount: 0,
+        currentStreak: 0,
+        maxStreak: 0,
+        totalRewards: {
+          mineral: 0,
+          bio_sample: 0,
+          techPoints: 0
+        }
+      });
+    }
+    return this.playerStats.get(playerId);
+  }
+
+  getPlayerStreak(playerId) {
+    const stats = this.getOrCreatePlayerStats(playerId);
+    return {
+      currentStreak: stats.currentStreak,
+      maxStreak: stats.maxStreak,
+      nextThreshold: this.getNextThreshold(stats.currentStreak)
+    };
+  }
+
+  getNextThreshold(currentStreak) {
+    for (const threshold of STREAK_BONUS_THRESHOLDS) {
+      if (currentStreak < threshold.streak) {
+        return {
+          streak: threshold.streak,
+          multiplier: threshold.multiplier,
+          name: threshold.name,
+          progress: currentStreak / threshold.streak
+        };
+      }
+    }
+    const highest = STREAK_BONUS_THRESHOLDS[STREAK_BONUS_THRESHOLDS.length - 1];
+    return {
+      streak: highest.streak,
+      multiplier: highest.multiplier,
+      name: highest.name,
+      progress: 1.0,
+      isMax: true
+    };
+  }
+
+  getStreakBonusMultiplier(streak) {
+    let multiplier = 0;
+    for (const threshold of STREAK_BONUS_THRESHOLDS) {
+      if (streak >= threshold.streak) {
+        multiplier = threshold.multiplier;
+      }
+    }
+    return multiplier;
+  }
+
+  grantStreakBonus(task, player, newStreak) {
+    const bonusMultiplier = this.getStreakBonusMultiplier(newStreak);
+    if (bonusMultiplier <= 0) return null;
+
+    const baseAmount = task.reward.amount;
+    const bonusAmount = Math.floor(baseAmount * bonusMultiplier);
+    if (bonusAmount <= 0) return null;
+
+    switch (task.reward.type) {
+      case 'mineral':
+        player.base.storage.mineral += bonusAmount;
+        break;
+      case 'bio_sample':
+        player.base.storage.bio_sample += bonusAmount;
+        break;
+      case 'techPoints':
+        player.base.techPoints += bonusAmount;
+        break;
+    }
+
+    return {
+      type: task.reward.type,
+      typeName: task.reward.typeName,
+      amount: bonusAmount,
+      multiplier: bonusMultiplier,
+      streak: newStreak
+    };
+  }
+
+  getLeaderboard() {
+    const stats = [];
+    for (const player of this.game.players) {
+      const playerStat = this.getOrCreatePlayerStats(player.id);
+      const totalRewardValue = 
+        playerStat.totalRewards.mineral * CONFIG.BOUNTY.BASE_REWARDS.mineral / CONFIG.BOUNTY.BASE_REWARDS.mineral +
+        playerStat.totalRewards.bio_sample * CONFIG.BOUNTY.BASE_REWARDS.bio_sample / CONFIG.BOUNTY.BASE_REWARDS.mineral +
+        playerStat.totalRewards.techPoints * CONFIG.BOUNTY.BASE_REWARDS.techPoints / CONFIG.BOUNTY.BASE_REWARDS.mineral;
+      
+      stats.push({
+        playerId: player.id,
+        playerName: player.name,
+        playerColor: player.color,
+        completedCount: playerStat.completedCount,
+        currentStreak: playerStat.currentStreak,
+        maxStreak: playerStat.maxStreak,
+        totalRewards: { ...playerStat.totalRewards },
+        totalRewardValue
+      });
+    }
+
+    stats.sort((a, b) => {
+      if (b.completedCount !== a.completedCount) {
+        return b.completedCount - a.completedCount;
+      }
+      return b.totalRewardValue - a.totalRewardValue;
+    });
+
+    return stats;
   }
 
   snapshotMinerals() {
@@ -314,6 +438,9 @@ class BountyManager {
     for (const task of failedTasks) {
       const player = this.game.getPlayer(task.acceptedBy);
       if (player) {
+        const stats = this.getOrCreatePlayerStats(task.acceptedBy);
+        stats.currentStreak = 0;
+
         const penalty = CONFIG.BOUNTY.FAILURE_PENALTY;
         const actualPenalty = Math.min(penalty, player.base.storage.mineral);
         player.base.storage.mineral = Math.max(0, player.base.storage.mineral - penalty);
@@ -326,7 +453,7 @@ class BountyManager {
           taskType: task.typeName,
           penalty: actualPenalty,
           turn: this.game.turn,
-          message: `${player.name} 的悬赏任务「${task.description}」超时失败，扣除${actualPenalty}矿物违约金`
+          message: `${player.name} 的悬赏任务「${task.description}」超时失败，扣除${actualPenalty}矿物违约金，连续完成记录清零`
         });
       }
     }
@@ -334,6 +461,33 @@ class BountyManager {
     for (const task of completedTasks) {
       const player = this.game.getPlayer(task.acceptedBy);
       if (player) {
+        const stats = this.getOrCreatePlayerStats(task.acceptedBy);
+        stats.completedCount++;
+        stats.currentStreak++;
+        if (stats.currentStreak > stats.maxStreak) {
+          stats.maxStreak = stats.currentStreak;
+        }
+
+        const rewardType = task.reward.type;
+        stats.totalRewards[rewardType] += task.reward.actualAmount || task.reward.amount;
+
+        const streakBonus = this.grantStreakBonus(task, player, stats.currentStreak);
+        task.streakBonus = streakBonus;
+
+        let message = `${player.name} 完成了悬赏任务「${task.description}」！获得${task.reward.typeName}×${task.reward.actualAmount || task.reward.amount}`;
+        if (streakBonus) {
+          message += `，连续完成${stats.currentStreak}个，额外获得${streakBonus.typeName}×${streakBonus.amount}（+${Math.floor(streakBonus.multiplier * 100)}%）`;
+          this.game.eventLog.push({
+            type: 'bounty_streak_bonus',
+            playerId: task.acceptedBy,
+            playerName: player.name,
+            streak: stats.currentStreak,
+            bonus: streakBonus,
+            turn: this.game.turn,
+            message: `🎉 恭喜 ${player.name} 连续完成${stats.currentStreak}个悬赏任务！获得额外${streakBonus.typeName}×${streakBonus.amount}（+${Math.floor(streakBonus.multiplier * 100)}%）`
+          });
+        }
+
         this.game.eventLog.push({
           type: 'bounty_completed',
           playerId: task.acceptedBy,
@@ -341,8 +495,10 @@ class BountyManager {
           taskId: task.id,
           taskType: task.typeName,
           reward: task.reward,
+          streakBonus,
+          currentStreak: stats.currentStreak,
           turn: this.game.turn,
-          message: `${player.name} 完成了悬赏任务「${task.description}」！获得${task.reward.typeName}×${task.reward.amount}`
+          message
         });
       }
     }
@@ -569,7 +725,9 @@ class BountyManager {
       })),
       assistedTasks: this.getAssistedTasks(playerId).map(t => this.taskToPrivateState(t)),
       allyTasks: this.getAllianceMemberTasks(playerId),
-      bountyTargets: this.getBountyTargetCoords(playerId)
+      bountyTargets: this.getBountyTargetCoords(playerId),
+      myStreak: this.getPlayerStreak(playerId),
+      leaderboard: this.getLeaderboard()
     };
   }
 

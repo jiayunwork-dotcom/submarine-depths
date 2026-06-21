@@ -421,3 +421,175 @@
   color: #aaa;
   margin: 0 0 10px 0;
 }
+
+.bounty-leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leaderboard-header {
+  text-align: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.leaderboard-header h4 {
+  font-size: 16px;
+  color: #ffd700;
+  margin: 0 0 6px 0;
+}
+
+.leaderboard-desc {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leaderboard-entry {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.leaderboard-entry.current-player {
+  border-color: rgba(255, 215, 0, 0.4);
+  background: rgba(255, 215, 0, 0.08);
+}
+
+.leaderboard-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+
+.rank-badge {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.leaderboard-player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leaderboard-player-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.player-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.you-tag {
+  color: #ffd700;
+  font-size: 12px;
+}
+
+.leaderboard-stats {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.leaderboard-rewards {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #4caf50;
+}
+
+.reward-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.streak-progress-section {
+  margin-top: 16px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 143, 0, 0.1) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 10px;
+}
+
+.streak-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.streak-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.streak-count {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.streak-progress-bar {
+  height: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.streak-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffd700 0%, #ff8f00 100%);
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+.streak-next-reward {
+  font-size: 12px;
+  color: #ccc;
+  text-align: center;
+}
+
+.max-streak {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.streak-max-record {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+}

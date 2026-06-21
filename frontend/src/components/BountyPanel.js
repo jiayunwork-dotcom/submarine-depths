@@ -23,6 +23,8 @@ function BountyPanel() {
   const myTasks = bounties.myTasks || [];
   const myCompletedTasks = bounties.myCompletedTasks || [];
   const allyTasks = bounties.allyTasks || [];
+  const leaderboard = bounties.leaderboard || [];
+  const myStreak = bounties.myStreak || { currentStreak: 0, maxStreak: 0, nextThreshold: null };
 
   const activeTaskCount = myTasks.length;
   const maxTasks = 2;
@@ -210,6 +212,92 @@ function BountyPanel() {
     </div>
   );
 
+  const renderLeaderboardEntry = (entry, index) => {
+    const isCurrentPlayer = entry.playerId === currentPlayerId;
+    const getRankBadge = (idx) => {
+      if (idx === 0) return '🥇';
+      if (idx === 1) return '🥈';
+      if (idx === 2) return '🥉';
+      return `${idx + 1}`;
+    };
+
+    return (
+      <div key={entry.playerId} className={`leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}`}>
+        <div className="leaderboard-rank">
+          <span className="rank-badge">{getRankBadge(index)}</span>
+        </div>
+        <div className="leaderboard-player-info">
+          <div className="leaderboard-player-name">
+            <span
+              className="player-color-dot"
+              style={{ backgroundColor: entry.playerColor }}
+            />
+            {entry.playerName}
+            {isCurrentPlayer && <span className="you-tag"> (你)</span>}
+          </div>
+          <div className="leaderboard-stats">
+            <span className="stat-item">
+              🏆 {entry.completedCount} 个任务
+            </span>
+            <span className="stat-item">
+              🔥 最高连{entry.maxStreak}
+            </span>
+            <span className="stat-item">
+              ⚡ 当前连{entry.currentStreak}
+            </span>
+          </div>
+          <div className="leaderboard-rewards">
+            <span className="reward-item">
+              {CONFIG.BOUNTY_REWARD_ICONS?.mineral || '💎'} {entry.totalRewards.mineral}
+            </span>
+            <span className="reward-item">
+              {CONFIG.BOUNTY_REWARD_ICONS?.bio_sample || '🧬'} {entry.totalRewards.bio_sample}
+            </span>
+            <span className="reward-item">
+              {CONFIG.BOUNTY_REWARD_ICONS?.techPoints || '🔬'} {entry.totalRewards.techPoints}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderStreakProgress = () => {
+    const { currentStreak, nextThreshold } = myStreak;
+    if (!nextThreshold) return null;
+
+    const progressPercent = Math.min(100, nextThreshold.progress * 100);
+    const nextStreak = nextThreshold.streak;
+    const bonusPercent = nextThreshold.name;
+
+    return (
+      <div className="streak-progress-section">
+        <div className="streak-header">
+          <span className="streak-title">🔥 连续完成</span>
+          <span className="streak-count">{currentStreak}/{nextStreak}</span>
+        </div>
+        <div className="streak-progress-bar">
+          <div
+            className="streak-progress-fill"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        <div className="streak-next-reward">
+          {nextThreshold.isMax ? (
+            <span className="max-streak">🎉 已达最高奖励等级！额外+{bonusPercent}</span>
+          ) : (
+            <span>下一阶段奖励: +{bonusPercent} 额外奖励</span>
+          )}
+        </div>
+        {myStreak.maxStreak > 0 && (
+          <div className="streak-max-record">
+            历史最高记录: {myStreak.maxStreak} 连胜
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="bounty-panel">
       <div className="bounty-panel-header">
@@ -231,6 +319,12 @@ function BountyPanel() {
           onClick={() => setBountyTab('my')}
         >
           我的任务 {activeTaskCount > 0 && <span className="tab-badge">{activeTaskCount}/{maxTasks}</span>}
+        </button>
+        <button
+          className={`tab-btn ${bountyTab === 'leaderboard' ? 'active' : ''}`}
+          onClick={() => setBountyTab('leaderboard')}
+        >
+          🏆 排行榜
         </button>
       </div>
 
@@ -264,6 +358,24 @@ function BountyPanel() {
               <h4>历史任务</h4>
               {myCompletedTasks.slice(-5).map(renderCompletedTask)}
             </div>
+          )}
+
+          {renderStreakProgress()}
+        </div>
+      )}
+
+      {bountyTab === 'leaderboard' && (
+        <div className="bounty-leaderboard">
+          <div className="leaderboard-header">
+            <h4>🏆 悬赏排行榜</h4>
+            <p className="leaderboard-desc">按完成任务数排序，任务数相同按总奖励价值排序</p>
+          </div>
+          {leaderboard.length > 0 ? (
+            <div className="leaderboard-list">
+              {leaderboard.map((entry, index) => renderLeaderboardEntry(entry, index))}
+            </div>
+          ) : (
+            <div className="no-tasks">暂无排行数据，快去完成任务吧！</div>
           )}
         </div>
       )}
