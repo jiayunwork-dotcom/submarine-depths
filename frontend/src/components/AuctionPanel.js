@@ -28,18 +28,16 @@ function AuctionPanel() {
   const currentPlayer = gameState?.currentPlayer;
   const phase = gameState?.phase;
 
-  if (!auctions) return null;
-
-  const activeListings = auctions.activeListings || [];
-  const myListings = auctions.myListings || [];
-  const myActiveListingCount = auctions.myActiveListingCount || 0;
-  const myActiveBidCount = auctions.myActiveBidCount || 0;
-  const maxListings = auctions.maxListings || 3;
-  const maxBids = auctions.maxBids || 5;
-  const minBidIncrement = auctions.minBidIncrement || 0.1;
-  const minDuration = auctions.minDuration || 2;
-  const maxDuration = auctions.maxDuration || 6;
-  const itemTypes = auctions.itemTypes || CONFIG.AUCTION_ITEM_TYPES;
+  const activeListings = auctions?.activeListings || [];
+  const myListings = auctions?.myListings || [];
+  const myActiveListingCount = auctions?.myActiveListingCount || 0;
+  const myActiveBidCount = auctions?.myActiveBidCount || 0;
+  const maxListings = auctions?.maxListings || 3;
+  const maxBids = auctions?.maxBids || 5;
+  const minBidIncrement = auctions?.minBidIncrement || 0.1;
+  const minDuration = auctions?.minDuration || 2;
+  const maxDuration = auctions?.maxDuration || 6;
+  const itemTypes = auctions?.itemTypes || CONFIG.AUCTION_ITEM_TYPES;
 
   const filteredAndSortedListings = useMemo(() => {
     let result = [...activeListings];
@@ -61,6 +59,8 @@ function AuctionPanel() {
 
     return result;
   }, [activeListings, filterType, sortBy]);
+
+  if (!auctions) return null;
 
   const getMinBid = (listing) => {
     const increment = Math.ceil(listing.startPrice * minBidIncrement);
