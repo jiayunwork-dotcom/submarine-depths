@@ -393,7 +393,7 @@ class AuctionManager {
       listing.finalBuyerName = finalBuyerName;
 
       const tax = Math.floor(price * CONFIG.AUCTION.TAX_RATE);
-      const sellerReceives = Math.floor(price * (1 - CONFIG.AUCTION.TAX_RATE));
+      const sellerReceives = price - tax;
       listing.taxCollected = tax;
       listing.sellerReceives = sellerReceives;
 
